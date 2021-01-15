@@ -19,6 +19,7 @@ public class SemanticChecker implements ASTVisitor {
     public void visit(ProgramNode it) {
         funcSymbol main = globalScope.getFunction("main", false, it.pos);
         if (!main.returnType.isInt()) throw new semanticError("main function must return int", it.pos);
+        if (main.paramList.size() != 0) throw new semanticError("main function should not have parameters", it.pos);
         currentScope = globalScope;
         it.body.forEach(x -> x.accept(this));
     }
@@ -50,7 +51,10 @@ public class SemanticChecker implements ASTVisitor {
         currentClass.funcMap.forEach((key, value) -> currentScope.defineFunction(key, value, it.pos));
         //it.varList.forEach(x->x.accept(this));
         it.funcList.forEach(x -> x.accept(this));
-        if (it.constructor != null) it.constructor.accept(this);
+        if (it.constructor != null) {
+            if (!it.constructor.name.equals(it.name)) throw new semanticError("mismatched constructor name", it.pos);
+            it.constructor.accept(this);
+        }
         currentScope = currentScope.parentScope;
         currentClass = null;
     }
@@ -77,11 +81,11 @@ public class SemanticChecker implements ASTVisitor {
     public void visit(varDefSubStmt it) {
         Type varType = globalScope.getType(it.type);
         if (varType.isVoid()) throw new semanticError("void variable", it.pos);
-        currentScope.defineVariable(it.name, new varSymbol(it.name, varType), it.pos);
         if (it.expr != null) {
             it.expr.accept(this);
             if (!it.expr.type.equals(varType)) throw new semanticError("variable init fail", it.pos);
         }
+        currentScope.defineVariable(it.name, new varSymbol(it.name, varType), it.pos);
     }
 
     @Override
