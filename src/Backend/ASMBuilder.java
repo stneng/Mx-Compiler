@@ -154,7 +154,6 @@ public class ASMBuilder {
                 currentBlock.addInst(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm(-(((IR.inst.Call) inst).param.size() - 8) * 4)));
                 int offset = 0;
                 for (int i = 8; i < ((IR.inst.Call) inst).param.size(); i++) {
-                    VReg tmp = new VReg("tmp");
                     currentBlock.addInst(new Store(getReg(((IR.inst.Call) inst).param.get(i)), asm.getPReg("sp"), new Imm(offset), 4));
                     offset += 4;
                 }

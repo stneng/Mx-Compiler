@@ -1017,7 +1017,7 @@ public class IRBuilder implements ASTVisitor {
                 renameVar(v, currentFunction.beginBlock);
             });
             simplifyPhi();
-            removeAssign();
+            //removeAssign();
         });
     }
 }
