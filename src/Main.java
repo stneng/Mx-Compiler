@@ -19,10 +19,14 @@ import java.io.InputStream;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        boolean onlySemantic = false;
+        boolean codegen = true, optimize = false;
         if (args.length > 0)
             for (String arg : args) {
-                if (arg.equals("-semantic")) onlySemantic = true;
+                switch (arg) {
+                    case "-semantic" -> codegen = false;
+                    case "-codegen" -> codegen = true;
+                    case "-optimize" -> optimize = true;
+                }
             }
 
         InputStream input = System.in;
@@ -43,7 +47,7 @@ public class Main {
             new TypeCollector(global).visit(ASTRoot);
             global.varMap.clear();
             new SemanticChecker(global).visit(ASTRoot);
-            if (onlySemantic) return;
+            if (!codegen) return;
             IR ir = new IR();
             new IRBuilder(ir).visit(ASTRoot);
             new IRBuilder(ir).run();
