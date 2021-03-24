@@ -1,13 +1,16 @@
+import ASM.ASM;
 import AST.ProgramNode;
+import AST.symbol.Scope;
+import Backend.*;
 import Frontend.ASTBuilder;
 import Frontend.SemanticChecker;
 import Frontend.SymbolCollector;
 import Frontend.TypeCollector;
+import IR.IR;
 import Parser.MxLexer;
 import Parser.MxParser;
 import Util.MxErrorListener;
 import Util.error.Error;
-import Util.symbol.Scope;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -35,6 +38,16 @@ public class Main {
             new TypeCollector(global).visit(ASTRoot);
             global.varMap.clear();
             new SemanticChecker(global).visit(ASTRoot);
+
+            IR ir = new IR();
+            new IRBuilder(ir).visit(ASTRoot);
+            new IRBuilder(ir).run();
+            // new IRPrinter(System.out, ir).prt();
+            ASM asm = new ASM();
+            new PhiEliminate(ir).run();
+            new ASMBuilder(ir, asm).run();
+            new RegAllocator(asm).run();
+            new ASMPrinter(System.out, asm).prt();
         } catch (Error er) {
             System.err.println(er.toString());
             throw new RuntimeException();

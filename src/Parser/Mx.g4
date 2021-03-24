@@ -65,7 +65,7 @@ expression
 expressionList : expression (',' expression)*;
 
 IntLiteral : [1-9] [0-9]* | '0';
-StrLiteral : '"' (~["\\\n\r] | '\\' ["\\nr])* '"';
+StrLiteral : '"' (~["\\\n\r\t] | '\\' ["\\nrt])* '"';
 BoolLiteral : True | False;
 NullLiteral : Null;
 

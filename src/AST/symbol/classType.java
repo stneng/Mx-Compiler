@@ -1,4 +1,6 @@
-package Util.symbol;
+package AST.symbol;
+
+import IR.type.ClassType;
 
 import java.util.HashMap;
 
@@ -7,6 +9,7 @@ public class classType extends Type {
     public HashMap<String, varSymbol> varMap = new HashMap<>();
     public HashMap<String, funcSymbol> funcMap = new HashMap<>();
     public funcSymbol constructor = null;
+    public ClassType classType = null;
 
     public classType(String name) {
         this.name = name;

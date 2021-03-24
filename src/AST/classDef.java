@@ -1,5 +1,6 @@
 package AST;
 
+import AST.symbol.classType;
 import Util.position;
 
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ public class classDef extends DefNode {
     public ArrayList<varDefSubStmt> varList = new ArrayList<>();
     public ArrayList<funcDef> funcList = new ArrayList<>();
     public funcDef constructor = null;
+    public classType classType = null;
 
     public classDef(position pos, String name) {
         super(pos);

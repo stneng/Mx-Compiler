@@ -1,15 +1,21 @@
 package Frontend;
 
 import AST.*;
+import AST.symbol.*;
+import IR.Function;
+import IR.IR;
 import Util.error.semanticError;
-import Util.symbol.*;
+
+import java.util.ArrayList;
 
 public class SemanticChecker implements ASTVisitor {
     public Scope globalScope, currentScope;
     public Type currentReturnType;
     public classType currentClass;
     public boolean returnDone;
+    public ArrayList<StmtNode> loops = new ArrayList<>();
     public int loopDeep = 0;
+    IR ir = new IR();
 
     public SemanticChecker(Scope global) {
         this.globalScope = global;
@@ -33,9 +39,16 @@ public class SemanticChecker implements ASTVisitor {
     public void visit(funcDef it) {
         if (it.type != null) currentReturnType = globalScope.getType(it.type);
         else currentReturnType = new primitiveType("void");
+        it.returnType = currentReturnType;
+        it.func.func = new Function(it.name);
+        it.func.func.returnType = ir.getType(it.returnType);
+        if (currentClass != null) it.func.func.inClass = true;
         returnDone = false;
         currentScope = new Scope(currentScope);
-        it.paramList.forEach(x -> currentScope.defineVariable(x.name, new varSymbol(x.name, globalScope.getType(x.type)), x.pos));
+        it.paramList.forEach(x -> {
+            x.varNode = new varSymbol(x.name, globalScope.getType(x.type));
+            currentScope.defineVariable(x.name, x.varNode, x.pos);
+        });
         it.block.accept(this);
         currentScope = currentScope.parentScope;
         if (it.name.equals("main")) returnDone = true;
@@ -54,6 +67,7 @@ public class SemanticChecker implements ASTVisitor {
         if (it.constructor != null) {
             if (!it.constructor.name.equals(it.name)) throw new semanticError("mismatched constructor name", it.pos);
             it.constructor.accept(this);
+            it.classType.classType.constructor = it.constructor.func.func;
         }
         currentScope = currentScope.parentScope;
         currentClass = null;
@@ -85,7 +99,9 @@ public class SemanticChecker implements ASTVisitor {
             it.expr.accept(this);
             if (!it.expr.type.equals(varType)) throw new semanticError("variable init fail", it.pos);
         }
-        currentScope.defineVariable(it.name, new varSymbol(it.name, varType), it.pos);
+        it.varNode = new varSymbol(it.name, varType);
+        if (currentScope == globalScope) it.varNode.isGlobal = true;
+        currentScope.defineVariable(it.name, it.varNode, it.pos);
     }
 
     @Override
@@ -107,10 +123,12 @@ public class SemanticChecker implements ASTVisitor {
         it.condition.accept(this);
         if (!it.condition.type.isBool()) throw new semanticError("while condition not bool", it.pos);
         loopDeep++;
+        loops.add(it);
         currentScope = new Scope(currentScope);
         it.body.accept(this);
         currentScope = currentScope.parentScope;
         loopDeep--;
+        loops.remove(loopDeep);
     }
 
     @Override
@@ -121,20 +139,24 @@ public class SemanticChecker implements ASTVisitor {
             throw new semanticError("while condition not bool", it.pos);
         if (it.inc != null) it.inc.accept(this);
         loopDeep++;
+        loops.add(it);
         currentScope = new Scope(currentScope);
         it.body.accept(this);
         currentScope = currentScope.parentScope;
         loopDeep--;
+        loops.remove(loopDeep);
     }
 
     @Override
     public void visit(breakStmt it) {
         if (loopDeep == 0) throw new semanticError("break not in loop", it.pos);
+        it.loop = loops.get(loopDeep - 1);
     }
 
     @Override
     public void visit(continueStmt it) {
         if (loopDeep == 0) throw new semanticError("continue not in loop", it.pos);
+        it.loop = loops.get(loopDeep - 1);
     }
 
     @Override
@@ -161,6 +183,7 @@ public class SemanticChecker implements ASTVisitor {
     @Override
     public void visit(varExpr it) {
         it.type = currentScope.getVariable(it.name, true, it.pos).type;
+        it.varNode = currentScope.getVariable(it.name, true, it.pos);
     }
 
     @Override
@@ -208,6 +231,8 @@ public class SemanticChecker implements ASTVisitor {
             funcSymbol func = new funcSymbol("length");
             func.returnType = new primitiveType("int");
             it.type = func;
+            func.func = new Function("__mx_builtin_str_length");
+            func.func.returnType = ir.getType(func.returnType);
             return;
         }
         if (it.base.type.isString() && it.isFunc && it.name.equals("substring")) {
@@ -216,12 +241,16 @@ public class SemanticChecker implements ASTVisitor {
             func.paramList.add(new varSymbol("left", new primitiveType("int")));
             func.paramList.add(new varSymbol("right", new primitiveType("int")));
             it.type = func;
+            func.func = new Function("__mx_builtin_str_substring");
+            func.func.returnType = ir.getType(func.returnType);
             return;
         }
         if (it.base.type.isString() && it.isFunc && it.name.equals("parseInt")) {
             funcSymbol func = new funcSymbol("parseInt");
             func.returnType = new primitiveType("int");
             it.type = func;
+            func.func = new Function("__mx_builtin_str_parseInt");
+            func.func.returnType = ir.getType(func.returnType);
             return;
         }
         if (it.base.type.isString() && it.isFunc && it.name.equals("ord")) {
@@ -229,6 +258,8 @@ public class SemanticChecker implements ASTVisitor {
             func.returnType = new primitiveType("int");
             func.paramList.add(new varSymbol("pos", new primitiveType("int")));
             it.type = func;
+            func.func = new Function("__mx_builtin_str_ord");
+            func.func.returnType = ir.getType(func.returnType);
             return;
         }
         if (!(it.base.type instanceof classType)) throw new semanticError("not a class", it.pos);

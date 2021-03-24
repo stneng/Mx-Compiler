@@ -1,4 +1,4 @@
-package Util.symbol;
+package AST.symbol;
 
 public class primitiveType extends Type {
     public String name;

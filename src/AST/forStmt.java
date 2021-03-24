@@ -1,10 +1,12 @@
 package AST;
 
+import IR.Block;
 import Util.position;
 
 public class forStmt extends StmtNode {
     public ExprNode init, condition, inc;
     public StmtNode body;
+    public Block destBlock, incBlock;
 
     public forStmt(position pos, ExprNode init, ExprNode condition, ExprNode inc, StmtNode body) {
         super(pos);

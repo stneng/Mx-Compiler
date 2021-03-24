@@ -1,11 +1,13 @@
 package AST;
 
+import AST.symbol.varSymbol;
 import Util.position;
 
 public class varDefSubStmt extends StmtNode {
     public TypeNode type;
     public String name;
     public ExprNode expr;
+    public varSymbol varNode;
 
     public varDefSubStmt(position pos, String name, ExprNode expr) {
         super(pos);

@@ -1,5 +1,7 @@
 package AST;
 
+import AST.symbol.Type;
+import AST.symbol.funcSymbol;
 import Util.position;
 
 import java.util.ArrayList;
@@ -9,6 +11,8 @@ public class funcDef extends DefNode {
     public TypeNode type;
     public blockStmt block;
     public ArrayList<varDefSubStmt> paramList;
+    public funcSymbol func = null;
+    public Type returnType = null;
 
     public funcDef(position pos, String name, TypeNode type, blockStmt block, ArrayList<varDefSubStmt> paramList) {
         super(pos);

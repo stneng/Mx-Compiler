@@ -1,4 +1,4 @@
-package Util.symbol;
+package AST.symbol;
 
 import AST.TypeNode;
 import Util.error.semanticError;

@@ -1,4 +1,4 @@
-package Util.symbol;
+package AST.symbol;
 
 public class arrayType extends Type {
     public Type simpleType;

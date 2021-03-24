@@ -1,7 +1,10 @@
 package Frontend;
 
 import AST.*;
-import Util.symbol.*;
+import AST.symbol.*;
+import IR.Function;
+import IR.IR;
+import IR.type.ClassType;
 
 public class SymbolCollector implements ASTVisitor {
     Scope global, current;
@@ -13,45 +16,60 @@ public class SymbolCollector implements ASTVisitor {
         this.global.typeMap.put("string", new primitiveType("string"));
         this.global.typeMap.put("void", new primitiveType("void"));
         this.global.typeMap.put("null", new primitiveType("null"));
+        IR ir = new IR();
         {
             funcSymbol func = new funcSymbol("print");
             func.returnType = new primitiveType("void");
             func.paramList.add(new varSymbol("str", new primitiveType("string")));
             this.global.funcMap.put("print", func);
+            func.func = new Function("__mx_builtin_print");
+            func.func.returnType = ir.getType(func.returnType);
         }
         {
             funcSymbol func = new funcSymbol("println");
             func.returnType = new primitiveType("void");
             func.paramList.add(new varSymbol("str", new primitiveType("string")));
             this.global.funcMap.put("println", func);
+            func.func = new Function("__mx_builtin_println");
+            func.func.returnType = ir.getType(func.returnType);
         }
         {
             funcSymbol func = new funcSymbol("printInt");
             func.returnType = new primitiveType("void");
             func.paramList.add(new varSymbol("n", new primitiveType("int")));
             this.global.funcMap.put("printInt", func);
+            func.func = new Function("__mx_builtin_printInt");
+            func.func.returnType = ir.getType(func.returnType);
         }
         {
             funcSymbol func = new funcSymbol("printlnInt");
             func.returnType = new primitiveType("void");
             func.paramList.add(new varSymbol("n", new primitiveType("int")));
             this.global.funcMap.put("printlnInt", func);
+            func.func = new Function("__mx_builtin_printlnInt");
+            func.func.returnType = ir.getType(func.returnType);
         }
         {
             funcSymbol func = new funcSymbol("getString");
             func.returnType = new primitiveType("string");
             this.global.funcMap.put("getString", func);
+            func.func = new Function("__mx_builtin_getString");
+            func.func.returnType = ir.getType(func.returnType);
         }
         {
             funcSymbol func = new funcSymbol("getInt");
             func.returnType = new primitiveType("int");
             this.global.funcMap.put("getInt", func);
+            func.func = new Function("__mx_builtin_getInt");
+            func.func.returnType = ir.getType(func.returnType);
         }
         {
             funcSymbol func = new funcSymbol("toString");
             func.returnType = new primitiveType("string");
             func.paramList.add(new varSymbol("i", new primitiveType("int")));
             this.global.funcMap.put("toString", func);
+            func.func = new Function("__mx_builtin_toString");
+            func.func.returnType = ir.getType(func.returnType);
         }
     }
 
@@ -68,7 +86,8 @@ public class SymbolCollector implements ASTVisitor {
 
     @Override
     public void visit(funcDef it) {
-        current.defineFunction(it.name, new funcSymbol(it.name), it.pos);
+        it.func = new funcSymbol(it.name);
+        current.defineFunction(it.name, it.func, it.pos);
     }
 
     @Override
@@ -77,11 +96,16 @@ public class SymbolCollector implements ASTVisitor {
         classType a = new classType(it.name);
         it.varList.forEach(x -> x.accept(this));
         it.funcList.forEach(x -> x.accept(this));
-        if (it.constructor != null) a.constructor = new funcSymbol(it.constructor.name);
+        if (it.constructor != null) {
+            a.constructor = new funcSymbol(it.constructor.name);
+            it.constructor.func = a.constructor;
+        }
         a.varMap = current.varMap;
         a.funcMap = current.funcMap;
         current = current.parentScope;
         current.defineType(it.name, a, it.pos);
+        it.classType = a;
+        it.classType.classType = new ClassType(it.name);
     }
 
     @Override
@@ -96,7 +120,8 @@ public class SymbolCollector implements ASTVisitor {
 
     @Override
     public void visit(varDefSubStmt it) {
-        current.defineVariable(it.name, new varSymbol(it.name), it.pos);
+        it.varNode = new varSymbol(it.name);
+        current.defineVariable(it.name, it.varNode, it.pos);
     }
 
     @Override

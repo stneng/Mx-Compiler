@@ -1,4 +1,4 @@
-package Util.symbol;
+package AST.symbol;
 
 public abstract class Type {
     public boolean equals(Type t) {

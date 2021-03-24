@@ -1,10 +1,12 @@
 package AST;
 
+import IR.Block;
 import Util.position;
 
 public class whileStmt extends StmtNode {
     public ExprNode condition;
     public StmtNode body;
+    public Block destBlock, condBlock;
 
     public whileStmt(position pos, ExprNode condition, StmtNode body) {
         super(pos);

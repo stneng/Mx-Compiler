@@ -1,9 +1,9 @@
 package Frontend;
 
 import AST.*;
-import Util.symbol.Scope;
-import Util.symbol.classType;
-import Util.symbol.varSymbol;
+import AST.symbol.Scope;
+import AST.symbol.classType;
+import AST.symbol.varSymbol;
 
 public class TypeCollector implements ASTVisitor {
     Scope global;
