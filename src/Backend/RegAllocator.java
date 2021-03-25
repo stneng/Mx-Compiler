@@ -441,6 +441,7 @@ public class RegAllocator {
         } else {
             addSp();
             removeDeadMv();
+            removeUselessBlock();
         }
         currentFunction = null;
     }
@@ -453,6 +454,27 @@ public class RegAllocator {
                     block.inst.remove(i);
                     i--;
                 }
+            }
+        }
+    }
+
+    public void removeUselessBlock() {
+        for (int i = 0; i < currentFunction.blocks.size(); i++) {
+            Block block = currentFunction.blocks.get(i);
+            if (block.inst.get(0) instanceof J) {
+                Block dest = ((J) block.inst.get(0)).dest;
+                for (Block b : currentFunction.blocks) {
+                    for (int i1 = 0; i1 < b.pre.size(); i1++) if (b.pre.get(i1) == block) b.pre.set(i1, dest);
+                    for (int i1 = 0; i1 < b.nxt.size(); i1++) if (b.nxt.get(i1) == block) b.nxt.set(i1, dest);
+                    for (int i1 = 0; i1 < b.inst.size(); i1++) {
+                        if (b.inst.get(i1) instanceof J && ((J) b.inst.get(i1)).dest == block)
+                            ((J) b.inst.get(i1)).dest = dest;
+                        if (b.inst.get(i1) instanceof Branch && ((Branch) b.inst.get(i1)).dest == block)
+                            ((Branch) b.inst.get(i1)).dest = dest;
+                    }
+                }
+                currentFunction.blocks.remove(i);
+                i--;
             }
         }
     }

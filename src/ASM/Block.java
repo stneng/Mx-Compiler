@@ -27,6 +27,15 @@ public class Block {
         inst.add(inst.size() - 1, a);
     }
 
+    public void removeInst(Inst a) {
+        for (int i = 0; i < inst.size(); i++) {
+            if (inst.get(i) == a) {
+                inst.remove(i);
+                return;
+            }
+        }
+    }
+
     public String toString() {
         return name;
     }

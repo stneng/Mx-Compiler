@@ -5,6 +5,7 @@ import ASM.Block;
 import ASM.Function;
 import ASM.inst.Branch;
 import ASM.inst.Call;
+import ASM.inst.Inst;
 import ASM.inst.Load;
 import ASM.inst.Store;
 import ASM.inst.*;
@@ -18,6 +19,8 @@ import IR.type.Pointer;
 import Util.error.internalError;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ASMBuilder {
     public IR.IR ir;
@@ -151,13 +154,11 @@ public class ASMBuilder {
                 currentBlock.addInst(new Mv(asm.getPReg("a" + i), getReg(((IR.inst.Call) inst).param.get(i))));
             }
             if (((IR.inst.Call) inst).param.size() > 8) {
-                currentBlock.addInst(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm(-(((IR.inst.Call) inst).param.size() - 8) * 4)));
-                int offset = 0;
+                int offset = 0, base = -(((IR.inst.Call) inst).param.size() - 8) * 4;
                 for (int i = 8; i < ((IR.inst.Call) inst).param.size(); i++) {
-                    currentBlock.addInst(new Store(getReg(((IR.inst.Call) inst).param.get(i)), asm.getPReg("sp"), new Imm(offset), 4));
+                    currentBlock.addInst(new Store(getReg(((IR.inst.Call) inst).param.get(i)), asm.getPReg("sp"), new Imm(offset + base), 4));
                     offset += 4;
                 }
-                currentBlock.addInst(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm((((IR.inst.Call) inst).param.size() - 8) * 4)));
             }
             currentBlock.addInst(new Call(getFunction(((IR.inst.Call) inst).func), asm));
             if (inst.reg != null) {
@@ -281,7 +282,30 @@ public class ASMBuilder {
             }
         }
         func.blocks.forEach(this::do_block);
+        removeUselessInst();
         currentFunction = null;
+    }
+
+    public void removeUselessInst() {
+        AtomicBoolean cond = new AtomicBoolean(true);
+        while (cond.get()) {
+            cond.set(false);
+            HashSet<Register> used = new HashSet<>();
+            currentFunction.blocks.forEach(t -> t.inst.forEach(x -> used.addAll(x.getUse())));
+            currentFunction.blocks.forEach(t -> {
+                for (int i = 0; i < t.inst.size(); i++) {
+                    Inst x = t.inst.get(i);
+                    if ((x instanceof Calc && !used.contains(((Calc) x).rd)) ||
+                            (x instanceof Li && !used.contains(((Li) x).reg)) ||
+                            (x instanceof Lui && !used.contains(((Lui) x).reg)) ||
+                            (x instanceof Load && !used.contains(((Load) x).reg))) {
+                        t.removeInst(x);
+                        i--;
+                        cond.set(true);
+                    }
+                }
+            });
+        }
     }
 
     public void run() {
