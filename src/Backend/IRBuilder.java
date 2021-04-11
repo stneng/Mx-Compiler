@@ -486,9 +486,11 @@ public class IRBuilder implements ASTVisitor {
                 currentBlock.addInst(new Binary(currentBlock, (Register) it.operand, "sub", new ConstInt(0, 32), src));
                 break;
             case "~":
-                currentBlock.addInst(new Binary(currentBlock, (Register) it.operand, "xor", src, new ConstInt(Integer.MAX_VALUE, 32)));
+                currentBlock.addInst(new Binary(currentBlock, (Register) it.operand, "xor", src, new ConstInt(-1, 32)));
+                break;
             case "!":
                 currentBlock.addInst(new Binary(currentBlock, (Register) it.operand, "xor", src, new ConstBool(true)));
+                break;
             default:
                 break;
         }

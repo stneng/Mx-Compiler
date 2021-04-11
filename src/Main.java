@@ -2,6 +2,7 @@ import ASM.ASM;
 import AST.ProgramNode;
 import AST.symbol.Scope;
 import Backend.*;
+import Backend.optimizer.Optimizer;
 import Frontend.ASTBuilder;
 import Frontend.SemanticChecker;
 import Frontend.SymbolCollector;
@@ -52,6 +53,7 @@ public class Main {
             new IRBuilder(ir).visit(ASTRoot);
             new IRBuilder(ir).run();
             // new IRPrinter(System.out, ir).prt();
+            if (optimize) new Optimizer(ir).run();
             ASM asm = new ASM();
             new PhiEliminate(ir).run();
             new ASMBuilder(ir, asm).run();

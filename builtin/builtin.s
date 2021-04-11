@@ -221,7 +221,7 @@ __mx_builtin_str_gt:
 	sw	ra,12(sp)
 	call	strcmp
 	lw	ra,12(sp)
-	srli	a0,a0,31
+	sgt	a0,a0,zero
 	addi	sp,sp,16
 	jr	ra
 	.size	__mx_builtin_str_gt, .-__mx_builtin_str_gt

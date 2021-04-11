@@ -63,6 +63,16 @@ public class Block {
 
     public void removeTerminator() {
         if (!terminated) return;
+        Inst a = inst.get(inst.size() - 1);
+        if (a instanceof Jump) {
+            nxt.remove(((Jump) a).dest);
+            ((Jump) a).dest.pre.remove(this);
+        } else if (a instanceof Branch) {
+            nxt.remove(((Branch) a).trueDest);
+            nxt.remove(((Branch) a).falseDest);
+            ((Branch) a).trueDest.pre.remove(this);
+            ((Branch) a).falseDest.pre.remove(this);
+        }
         inst.remove(inst.size() - 1);
         terminated = false;
     }
@@ -75,6 +85,27 @@ public class Block {
     public Inst getTerminator() {
         if (!terminated) return null;
         return inst.get(inst.size() - 1);
+    }
+
+    public void replaceBlockNxt(Block oriBlock, Block newBlock) {
+        for (Inst inst : this.inst) {
+            if (inst instanceof Jump) {
+                if (((Jump) inst).dest == oriBlock) ((Jump) inst).dest = newBlock;
+            } else if (inst instanceof Branch) {
+                if (((Branch) inst).trueDest == oriBlock) ((Branch) inst).trueDest = newBlock;
+                if (((Branch) inst).falseDest == oriBlock) ((Branch) inst).falseDest = newBlock;
+            }
+        }
+    }
+
+    public void replaceBlockPre(Block oriBlock, Block newBlock) {
+        for (Inst inst : this.inst) {
+            if (inst instanceof Phi) {
+                for (int i = 0; i < ((Phi) inst).blocks.size(); i++) {
+                    if (((Phi) inst).blocks.get(i) == oriBlock) ((Phi) inst).blocks.set(i, newBlock);
+                }
+            }
+        }
     }
 
     public String toString() {

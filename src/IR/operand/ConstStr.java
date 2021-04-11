@@ -33,6 +33,6 @@ public class ConstStr extends Operand {
 
     @Override
     public boolean equals(Operand t) {
-        return this == t;
+        return (t instanceof ConstStr && ((ConstStr) t).value.equals(value));
     }
 }

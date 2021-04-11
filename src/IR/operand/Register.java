@@ -20,6 +20,13 @@ public class Register extends Operand {
         this.name = name;
     }
 
+    public Register(BaseType type, String name, boolean isGlobal, boolean isConstPtr) {
+        super(type);
+        this.name = name;
+        this.isGlobal = isGlobal;
+        this.isConstPtr = isConstPtr;
+    }
+
     @Override
     public String toString() {
         if (isGlobal) return "@" + name;

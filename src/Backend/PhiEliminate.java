@@ -3,7 +3,10 @@ package Backend;
 import IR.Block;
 import IR.Function;
 import IR.IR;
-import IR.inst.*;
+import IR.inst.Assign;
+import IR.inst.Inst;
+import IR.inst.Jump;
+import IR.inst.Phi;
 import IR.operand.Operand;
 import IR.operand.Register;
 
@@ -18,6 +21,7 @@ public class PhiEliminate {
     }
 
     public void eliminate(Function func) {
+        int block_id = 0;
         for (int i0 = 0; i0 < func.blocks.size(); i0++) {
             Block b = func.blocks.get(i0);
             // check phi
@@ -35,7 +39,7 @@ public class PhiEliminate {
                 Block x = b.pre.get(i);
                 if (x.nxt.size() > 1) {
                     Block tmp = new Block(0);
-                    tmp.name = "block." + func.blocks.size();
+                    tmp.name = "block.phi." + (block_id++);
                     func.blocks.add(tmp);
                     tmp.addInst(new Jump(tmp, b));
                     tmp.terminated = true;
@@ -52,15 +56,7 @@ public class PhiEliminate {
                     for (int i1 = 0; i1 < x.nxt.size(); i1++) {
                         if (x.nxt.get(i1) == b) x.nxt.set(i1, tmp);
                     }
-                    for (int i1 = 0; i1 < x.inst.size(); i1++) {
-                        Inst inst = x.inst.get(i1);
-                        if (inst instanceof Jump) {
-                            if (((Jump) inst).dest == b) ((Jump) inst).dest = tmp;
-                        } else if (inst instanceof Branch) {
-                            if (((Branch) inst).trueDest == b) ((Branch) inst).trueDest = tmp;
-                            if (((Branch) inst).falseDest == b) ((Branch) inst).falseDest = tmp;
-                        }
-                    }
+                    x.replaceBlockNxt(b, tmp);
                 }
             }
             // get parallel copy

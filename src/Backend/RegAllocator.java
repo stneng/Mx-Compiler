@@ -394,6 +394,13 @@ public class RegAllocator {
             Block block = currentFunction.blocks.get(i0);
             for (int i = 0; i < block.inst.size(); i++) {
                 Inst inst = block.inst.get(i);
+                if (inst instanceof Mv && spilledNodes.contains(((Mv) inst).reg) && spilledNodes.contains(((Mv) inst).src)) {
+                    VReg tmp = new VReg("tmp");
+                    block.inst.set(i, new Load(tmp, asm.getPReg("sp"), new Imm(offset.get(((Mv) inst).src)), 4));
+                    block.inst.add(i + 1, new Store(tmp, asm.getPReg("sp"), new Imm(offset.get(((Mv) inst).reg)), 4));
+                    i++;
+                    continue;
+                }
                 for (Register x : inst.getUse())
                     if (spilledNodes.contains(x)) {
                         if (inst instanceof Mv) {
