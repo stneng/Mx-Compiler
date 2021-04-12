@@ -291,6 +291,7 @@ public class ASMBuilder {
         while (cond.get()) {
             cond.set(false);
             HashSet<Register> used = new HashSet<>();
+            used.add(asm.getPReg("a0"));
             currentFunction.blocks.forEach(t -> t.inst.forEach(x -> used.addAll(x.getUse())));
             currentFunction.blocks.forEach(t -> {
                 for (int i = 0; i < t.inst.size(); i++) {
