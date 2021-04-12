@@ -911,33 +911,6 @@ public class IRBuilder implements ASTVisitor {
         while (x.rename_stack.peek() != ve) x.rename_stack.pop();
     }
 
-    public void removeAssign() {
-        HashMap<Register, Operand> assignMap = new HashMap<>();
-        currentFunction.blocks.forEach(t -> t.inst.forEach(x -> {
-            if (x instanceof Assign) assignMap.put(x.reg, ((Assign) x).value);
-        }));
-        currentFunction.blocks.forEach(t -> {
-            for (int i = 0; i < t.inst.size(); i++) {
-                Inst x = t.inst.get(i);
-                if (x instanceof Assign) {
-                    t.removeInst(x);
-                    i--;
-                } else {
-                    ArrayList<Operand> ops = x.getUseOperand();
-                    ops.forEach(op -> {
-                        if (op instanceof Register) {
-                            Operand replace = op;
-                            while (replace instanceof Register && assignMap.get((Register) replace) != null) {
-                                replace = assignMap.get((Register) replace);
-                            }
-                            if (op != replace) x.replace(op, replace);
-                        }
-                    });
-                }
-            }
-        });
-    }
-
     public void simplifyPhi() {
         // size=1
         currentFunction.blocks.forEach(t -> {
@@ -1019,7 +992,6 @@ public class IRBuilder implements ASTVisitor {
                 renameVar(v, currentFunction.beginBlock);
             });
             simplifyPhi();
-            //removeAssign();
         });
     }
 }

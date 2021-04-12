@@ -73,6 +73,40 @@ public class CleanUp {
         }
     }
 
+    public void removeAssign() {
+        HashMap<Register, Operand> assignMap = new HashMap<>();
+        currentFunction.blocks.forEach(b -> b.inst.forEach(x -> {
+            if (x instanceof Assign) assignMap.put(x.reg, ((Assign) x).value);
+        }));
+        currentFunction.blocks.forEach(b -> b.inst.forEach(x -> {
+            if (x instanceof Phi) {
+                ((Phi) x).values.forEach(t -> {
+                    if (t instanceof Register) assignMap.remove(t);
+                });
+            }
+        }));
+        currentFunction.blocks.forEach(t -> {
+            for (int i = 0; i < t.inst.size(); i++) {
+                Inst x = t.inst.get(i);
+                if (assignMap.containsKey(x.reg)) {
+                    t.removeInst(x);
+                    i--;
+                } else {
+                    ArrayList<Operand> ops = x.getUseOperand();
+                    ops.forEach(op -> {
+                        if (op instanceof Register) {
+                            Operand replace = op;
+                            while (replace instanceof Register && assignMap.get((Register) replace) != null) {
+                                replace = assignMap.get((Register) replace);
+                            }
+                            if (op != replace) x.replace(op, replace);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
     public HashSet<Function> funcUse = new HashSet<>();
 
     public void doEachInst() {
@@ -112,6 +146,7 @@ public class CleanUp {
         removeDeadBlock();
         removeDeadInst();
         doEachInst();
+        removeAssign();
         currentFunction = null;
     }
 

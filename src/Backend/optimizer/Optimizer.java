@@ -10,11 +10,14 @@ public class Optimizer {
     }
 
     public void run() {
-        new CleanUp(ir).run();
-        new SCCP(ir).run();
-        new CleanUp(ir).run();
-        new ADCE(ir).run();
-        new Inline(ir).run();
-        new CleanUp(ir).run();
+        for (int i = 0; i < 10; i++) {
+            new CleanUp(ir).run();
+            new SCCP(ir).run();
+            new CleanUp(ir).run();
+            new ADCE(ir).run();
+            new Inline(ir).run();
+            new CleanUp(ir).run();
+            new ImmInstMerge(ir).run();
+        }
     }
 }

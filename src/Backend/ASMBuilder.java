@@ -106,7 +106,7 @@ public class ASMBuilder {
                 rs2 = getReg(((Binary) inst).src2);
             } else {
                 if (((Binary) inst).src2 instanceof IR.operand.ConstInt) {
-                    if (((ConstInt) ((Binary) inst).src2).value >= -2048 && ((ConstInt) ((Binary) inst).src2).value <= 2047) {
+                    if (((ConstInt) ((Binary) inst).src2).value >= -2047 && ((ConstInt) ((Binary) inst).src2).value <= 2047) {
                         rs1 = getReg(((Binary) inst).src1);
                         rs2 = new Imm(((ConstInt) ((Binary) inst).src2).value);
                         if (op.equals("sub")) {
