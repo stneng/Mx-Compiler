@@ -76,6 +76,13 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(ProgramNode it) {
+        it.body.forEach(x -> {
+            if (x instanceof classDef) {
+                currentClass = ((classDef) x).classType.classType;
+                ((classDef) x).varList.forEach(t -> t.accept(this));
+                currentClass = null;
+            }
+        });
         it.body.forEach(x -> x.accept(this));
     }
 
@@ -139,7 +146,6 @@ public class IRBuilder implements ASTVisitor {
     @Override
     public void visit(classDef it) {
         currentClass = it.classType.classType;
-        it.varList.forEach(x -> x.accept(this));
         it.funcList.forEach(x -> x.accept(this));
         if (it.constructor != null) it.constructor.accept(this);
         ir.mxClass.put(currentClass.name, currentClass);
