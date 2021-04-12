@@ -106,19 +106,31 @@ public class ASMBuilder {
                 rs2 = getReg(((Binary) inst).src2);
             } else {
                 if (((Binary) inst).src2 instanceof IR.operand.ConstInt) {
-                    rs1 = getReg(((Binary) inst).src1);
-                    rs2 = new Imm(((ConstInt) ((Binary) inst).src2).value);
-                    if (op.equals("sub")) {
-                        op = "addi";
-                        ((Imm) rs2).value = -((Imm) rs2).value;
+                    if (((ConstInt) ((Binary) inst).src2).value >= -2048 && ((ConstInt) ((Binary) inst).src2).value <= 2047) {
+                        rs1 = getReg(((Binary) inst).src1);
+                        rs2 = new Imm(((ConstInt) ((Binary) inst).src2).value);
+                        if (op.equals("sub")) {
+                            op = "addi";
+                            ((Imm) rs2).value = -((Imm) rs2).value;
+                        } else {
+                            op = op + "i";
+                        }
                     } else {
-                        op = op + "i";
+                        rs1 = getReg(((Binary) inst).src1);
+                        rs2 = new VReg("tmp");
+                        currentBlock.addInst(new Li((Register) rs2, new Imm(((ConstInt) ((Binary) inst).src2).value)));
                     }
                 } else if (((Binary) inst).src1 instanceof IR.operand.ConstInt) {
                     if (/*!op.equals("div") && !op.equals("rem") && */!op.equals("sll") && !op.equals("sra") && !op.equals("sub")) {
-                        rs1 = getReg(((Binary) inst).src2);
-                        rs2 = new Imm(((ConstInt) ((Binary) inst).src1).value);
-                        op = op + "i";
+                        if (((ConstInt) ((Binary) inst).src1).value >= -2048 && ((ConstInt) ((Binary) inst).src1).value <= 2047) {
+                            rs1 = getReg(((Binary) inst).src2);
+                            rs2 = new Imm(((ConstInt) ((Binary) inst).src1).value);
+                            op = op + "i";
+                        } else {
+                            rs1 = getReg(((Binary) inst).src2);
+                            rs2 = new VReg("tmp");
+                            currentBlock.addInst(new Li((Register) rs2, new Imm(((ConstInt) ((Binary) inst).src1).value)));
+                        }
                     } else {
                         rs1 = getReg(((Binary) inst).src1);
                         rs2 = getReg(((Binary) inst).src2);
