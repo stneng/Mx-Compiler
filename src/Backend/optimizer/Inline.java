@@ -11,6 +11,7 @@ import IR.operand.Void;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 public class Inline {
     public IR ir;
@@ -58,7 +59,6 @@ public class Inline {
         }
         for (Function x : edge.get(func)) {
             if (!visited.contains(x)) dfs(x);
-
         }
         stack.remove(stack.size() - 1);
     }
@@ -69,7 +69,7 @@ public class Inline {
         ir.func.forEach((s, x) -> {
             if (!canNotInline.contains(x)) {
                 int instNum = x.blocks.stream().mapToInt(b -> b.inst.size()).sum();
-                if (x.blocks.size() <= 10 && instNum <= 150) {
+                if (x.blocks.size() <= 20 && instNum <= 300) {
                     canInline.add(x);
                 }
             }
@@ -113,7 +113,7 @@ public class Inline {
     public void inline(Call call, Function caller) {
         Function callee = call.func;
         int instNum = callee.blocks.stream().mapToInt(b -> b.inst.size()).sum();
-        if (callee.blocks.size() > 10 || instNum > 150) return;
+        if (callee.blocks.size() > 50 || instNum > 500) return;
         inlineBlock = new HashMap<>();
         inlineOperand = new HashMap<>();
         prefix = "inline." + callee.name + "." + (++tot) + ".";
@@ -231,5 +231,16 @@ public class Inline {
         edgeCollect();
         inlineCheck();
         for (Function func : canInline) inlineFunc(func);
+        for (Map.Entry<String, Function> entry : ir.func.entrySet()) {
+            Function x = entry.getValue();
+            if (edge.get(x).contains(x)) {
+                for (int c = 0; c < 10; c++) {
+                    for (int i = 0; i < reEdge.get(x).size(); i++)
+                        if (reEdge.get(x).get(i).func == x) {
+                            inline(reEdge.get(x).get(i), reEdgeF.get(x).get(i));
+                        }
+                }
+            }
+        }
     }
 }

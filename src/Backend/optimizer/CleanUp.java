@@ -24,6 +24,7 @@ public class CleanUp {
     }
 
     public void doBlock(Block block) {
+        block.name = "block." + currentFunction.blocks.size();
         currentFunction.blocks.add(block);
         block.nxt.forEach(x -> {
             if (!currentFunction.blocks.contains(x)) doBlock(x);
