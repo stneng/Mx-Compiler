@@ -13,6 +13,7 @@ import ASM.operand.*;
 import IR.inst.*;
 import IR.operand.ConstBool;
 import IR.operand.ConstInt;
+import IR.operand.Null;
 import IR.type.BaseType;
 import IR.type.ClassType;
 import IR.type.Pointer;
@@ -208,6 +209,7 @@ public class ASMBuilder {
                     break;
             }
         } else if (inst instanceof IR.inst.GetElementPtr) {
+            if (((GetElementPtr) inst).base instanceof Null) return;
             Register base = getReg(((GetElementPtr) inst).base);
             BaseType ty = ((Pointer) ((GetElementPtr) inst).base.type).pointType;
             int offset = 0;
