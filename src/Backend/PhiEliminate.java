@@ -45,14 +45,7 @@ public class PhiEliminate {
                     tmp.terminated = true;
                     tmp.nxt.add(b);
                     b.pre.set(i, tmp);
-                    for (int i1 = 0; i1 < b.inst.size(); i1++) {
-                        Inst inst = b.inst.get(i1);
-                        if (inst instanceof Phi) {
-                            for (int i2 = 0; i2 < ((Phi) inst).blocks.size(); i2++) {
-                                if (((Phi) inst).blocks.get(i2) == x) ((Phi) inst).blocks.set(i2, tmp);
-                            }
-                        }
-                    }
+                    b.replaceBlockPre(x, tmp);
                     for (int i1 = 0; i1 < x.nxt.size(); i1++) {
                         if (x.nxt.get(i1) == b) x.nxt.set(i1, tmp);
                     }

@@ -36,6 +36,14 @@ public class Block {
         }
     }
 
+    public Inst getTerminator() {
+        return inst.get(inst.size() - 1);
+    }
+
+    public void removeTerminator() {
+        inst.remove(inst.size() - 1);
+    }
+
     public String toString() {
         return name;
     }

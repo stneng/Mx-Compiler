@@ -69,7 +69,7 @@ public class Inline {
         ir.func.forEach((s, x) -> {
             if (!canNotInline.contains(x)) {
                 int instNum = x.blocks.stream().mapToInt(b -> b.inst.size()).sum();
-                if (x.blocks.size() <= 20 && instNum <= 300) {
+                if (x.blocks.size() <= 50 && instNum <= 300) {
                     canInline.add(x);
                 }
             }

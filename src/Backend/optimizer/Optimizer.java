@@ -14,10 +14,17 @@ public class Optimizer {
             new CleanUp(ir).run();
             new SCCP(ir).run();
             new CleanUp(ir).run();
+            new CSE(ir).run();
+            new CleanUp(ir).run();
             new ADCE(ir).run();
             new Inline(ir).run();
             new CleanUp(ir).run();
-            new ImmInstMerge(ir).run();
+            new LICM(ir).run();
+            new CleanUp(ir).run();
+            new ImmInstOpt(ir).run();
+            new CleanUp(ir).run();
+            new MemAccess(ir).run();
         }
+        new CleanUp(ir).run();
     }
 }

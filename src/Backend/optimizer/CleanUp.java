@@ -3,10 +3,7 @@ package Backend.optimizer;
 import IR.Block;
 import IR.Function;
 import IR.IR;
-import IR.inst.Assign;
-import IR.inst.Call;
-import IR.inst.Inst;
-import IR.inst.Phi;
+import IR.inst.*;
 import IR.operand.ConstStr;
 import IR.operand.Operand;
 import IR.operand.Register;
@@ -117,7 +114,7 @@ public class CleanUp {
                 // remove dead block in phi
                 if (inst instanceof Phi) {
                     for (int i1 = 0; i1 < ((Phi) inst).blocks.size(); i1++) {
-                        if (!currentFunction.blocks.contains(((Phi) inst).blocks.get(i1))) {
+                        if (!block.pre.contains(((Phi) inst).blocks.get(i1))) {
                             ((Phi) inst).blocks.remove(i1);
                             ((Phi) inst).values.remove(i1);
                             i1--;
@@ -140,13 +137,37 @@ public class CleanUp {
         }
     }
 
+    public void BlockCollect() {
+        currentFunction.blocks = new ArrayList<>();
+        doBlock(currentFunction.beginBlock);
+    }
+
+    public void BlockMerge() {
+        for (Block block : currentFunction.blocks)
+            if (block.pre.size() == 1 && block.pre.get(0).getTerminator() instanceof Jump) {
+                Block mainBlock = block.pre.get(0);
+                mainBlock.nxt = block.nxt;
+                mainBlock.removeTerminator();
+                mainBlock.inst.addAll(block.inst);
+                mainBlock.terminated = true;
+                for (Block b : mainBlock.nxt) {
+                    b.replaceBlockPre(block, mainBlock);
+                    for (int i = 0; i < b.pre.size(); i++) {
+                        if (b.pre.get(i) == block) b.pre.set(i, mainBlock);
+                    }
+                }
+                for (Inst inst : mainBlock.inst) inst.block = mainBlock;
+            }
+        BlockCollect();
+    }
+
     public void doFunc(Function func) {
         currentFunction = func;
-        currentFunction.blocks = new ArrayList<>();
-        doBlock(func.beginBlock);
+        BlockCollect();
         removeDeadBlock();
         removeDeadInst();
         doEachInst();
+        BlockMerge();
         removeAssign();
         currentFunction = null;
     }

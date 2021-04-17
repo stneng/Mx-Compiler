@@ -148,7 +148,6 @@ public class SCCP {
 
     public HashSet<Block> visited;
     public boolean cond;
-    public boolean done;
 
     public void doBlock(Block block) {
         visited.add(block);
@@ -210,14 +209,11 @@ public class SCCP {
             regUseCollect();
             visited = new HashSet<>();
             doBlock(func.beginBlock);
-            done |= cond;
         }
         currentFunction = null;
     }
 
-    public boolean run() {
-        done = false;
+    public void run() {
         ir.func.forEach((s, x) -> doFunc(x));
-        return done;
     }
 }

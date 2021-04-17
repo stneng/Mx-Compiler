@@ -448,7 +448,7 @@ public class RegAllocator {
         } else {
             addSp();
             removeDeadMv();
-            removeUselessBlock();
+            BlockMerge();
         }
         currentFunction = null;
     }
@@ -486,10 +486,31 @@ public class RegAllocator {
         }
     }
 
+    public void BlockMerge() {
+        for (int i0 = 0; i0 < currentFunction.blocks.size(); i0++) {
+            Block block = currentFunction.blocks.get(i0);
+            if (block.pre.size() == 1 && block.pre.get(0).getTerminator() instanceof J && ((J) block.pre.get(0).getTerminator()).dest == block) {
+                Block mainBlock = block.pre.get(0);
+                mainBlock.nxt = block.nxt;
+                mainBlock.removeTerminator();
+                mainBlock.inst.addAll(block.inst);
+                for (Block b : mainBlock.nxt) {
+                    for (int i = 0; i < b.pre.size(); i++) {
+                        if (b.pre.get(i) == block) b.pre.set(i, mainBlock);
+                    }
+                }
+                currentFunction.blocks.remove(i0);
+                i0--;
+            }
+        }
+    }
+
     public void addSp() {
         int realOffset = spOffset + Integer.max(0, currentFunction.params.size() - 8) * 4;
-        currentFunction.beginBlock.addInstFront(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm(-realOffset)));
-        currentFunction.endBlock.addInstBack(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm(realOffset)));
+        if (realOffset > 0) {
+            currentFunction.beginBlock.addInstFront(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm(-realOffset)));
+            currentFunction.endBlock.addInstBack(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm(realOffset)));
+        }
         for (Inst inst : currentFunction.beginBlock.inst) {
             if (inst instanceof Load && ((Load) inst).offset.inParam) {
                 ((Load) inst).offset.value += spOffset;

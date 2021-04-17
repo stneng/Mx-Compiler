@@ -220,7 +220,12 @@ public class ASMBuilder {
                 currentBlock.addInst(new Calc(getReg(inst.reg), "addi", base, new Imm(w)));
             } else {
                 VReg tmp = new VReg("tmp");
-                currentBlock.addInst(new Calc(tmp, "mul", getReg(new ConstInt(ty.size() / 8, 32)), getReg(((GetElementPtr) inst).index)));
+                int sz = ty.size() / 8;
+                int log2 = (int) (Math.log(sz) / Math.log(2));
+                if ((1 << log2) == sz)
+                    currentBlock.addInst(new Calc(tmp, "slli", getReg(((GetElementPtr) inst).index), new Imm(log2)));
+                else
+                    currentBlock.addInst(new Calc(tmp, "mul", getReg(((GetElementPtr) inst).index), getReg(new ConstInt(sz, 32))));
                 if (offset == 0) {
                     currentBlock.addInst(new Calc(getReg(inst.reg), "add", base, tmp));
                 } else {
