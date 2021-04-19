@@ -217,6 +217,7 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(whileStmt it) {
+        loopDepth++;
         Block bodyBlock = new Block(loopDepth), condBlock = new Block(loopDepth), destBlock = new Block(loopDepth);
         it.destBlock = destBlock;
         it.condBlock = condBlock;
@@ -229,6 +230,7 @@ public class IRBuilder implements ASTVisitor {
         it.body.accept(this);
         currentBlock.addTerminator(new Jump(currentBlock, condBlock));
         currentBlock = destBlock;
+        loopDepth--;
     }
 
     @Override
