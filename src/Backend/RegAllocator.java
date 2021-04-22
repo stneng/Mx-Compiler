@@ -250,6 +250,7 @@ public class RegAllocator {
     }
 
     public boolean conservative(ArrayList<Register> nodes, ArrayList<Register> y) {
+        nodes.removeAll(y);
         nodes.addAll(y);
         int k = 0;
         for (Register node : nodes) if (degree.get(node) >= K) k++;
