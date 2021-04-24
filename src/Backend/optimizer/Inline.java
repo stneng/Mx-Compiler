@@ -113,7 +113,7 @@ public class Inline {
     public void inline(Call call, Function caller) {
         Function callee = call.func;
         int instNum = callee.blocks.stream().mapToInt(b -> b.inst.size()).sum();
-        if (callee.blocks.size() > 80 || instNum > 800) return;
+        if (callee.blocks.size() > 50 || instNum > 500) return;
         inlineBlock = new HashMap<>();
         inlineOperand = new HashMap<>();
         prefix = "inline." + callee.name + "." + (++tot) + ".";
