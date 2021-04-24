@@ -6,6 +6,7 @@ import IR.IR;
 import IR.inst.*;
 import IR.operand.Operand;
 import IR.operand.Register;
+import IR.type.Pointer;
 
 import java.util.*;
 
@@ -84,19 +85,55 @@ public class LICM {
     }
 
     public HashMap<Register, Inst> regDef;
-    public HashMap<Register, ArrayList<Inst>> gVarDef;
 
     public void regDefCollect() {
         regDef = new HashMap<>();
-        gVarDef = new HashMap<>();
-        ir.gVar.forEach((s, x) -> gVarDef.put(x, new ArrayList<>()));
         for (Block block : currentFunction.blocks) {
             for (Inst inst : block.inst) {
                 if (inst.reg != null) regDef.put(inst.reg, inst);
-                if (inst instanceof Store && ((Store) inst).address instanceof Register && ((Register) ((Store) inst).address).isGlobal)
-                    gVarDef.get((Register) ((Store) inst).address).add(inst);
             }
         }
+    }
+
+    public boolean simpleCheck(HashSet<Block> loopBlock, Inst inst) {
+        ArrayList<Operand> use = inst.getUseOperand();
+        for (Operand op : use) {
+            if (op instanceof Register && regDef.containsKey(op) && loopBlock.contains(regDef.get(op).block)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean memCheck(HashSet<Block> loopBlock, Load inst) {
+        if (!(inst.address instanceof Register)) return true;
+        if (((Register) inst.address).isGlobal) {
+            for (Block block : loopBlock) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Store && ((Store) inst2).address.equals(inst.address)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        if (inst.address.type instanceof Pointer && ((Pointer) inst.address.type).pointType instanceof Pointer) {
+            ArrayList<Operand> use = inst.getUseOperand();
+            for (Operand op : use) {
+                if (op instanceof Register && regDef.containsKey(op) && loopBlock.contains(regDef.get(op).block)) {
+                    return false;
+                }
+            }
+            for (Block block : loopBlock) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Store && ((Store) inst2).address.type instanceof Pointer && ((Pointer) ((Store) inst2).address.type).pointType instanceof Pointer) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     public void doFunc() {
@@ -129,45 +166,24 @@ public class LICM {
             boolean cond = true;
             for (Block block : loopBlock) {
                 if (!sub.contains(block)) cond = false;
-                for (Inst inst : block.inst)
+                for (Inst inst : block.inst) {
                     if (inst instanceof Call) {
                         cond = false;
                         break;
                     }
+                }
             }
             if (!cond) continue;
             // do
             for (Block block : loopBlock) {
                 for (int i = 0; i < block.inst.size(); i++) {
                     Inst inst = block.inst.get(i);
-                    if (inst instanceof Binary) {
-                        boolean check = true;
-                        ArrayList<Operand> use = inst.getUseOperand();
-                        for (Operand op : use)
-                            if (op instanceof Register && regDef.containsKey(op) && loopBlock.contains(regDef.get(op).block)) {
-                                check = false;
-                                break;
-                            }
-                        if (check) {
-                            inst.block = b;
-                            b.addInstBack(inst);
-                            block.inst.remove(i);
-                            i--;
-                        }
-                    } else if (inst instanceof Load && ((Load) inst).address instanceof Register && ((Register) ((Load) inst).address).isGlobal) {
-                        boolean check = true;
-                        ArrayList<Inst> defs = gVarDef.get((Register) ((Load) inst).address);
-                        for (Inst def : defs)
-                            if (loopBlock.contains(def.block)) {
-                                check = false;
-                                break;
-                            }
-                        if (check) {
-                            inst.block = b;
-                            b.addInstBack(inst);
-                            block.inst.remove(i);
-                            i--;
-                        }
+                    if (((inst instanceof Binary || inst instanceof BitCast || inst instanceof GetElementPtr) && simpleCheck(loopBlock, inst))
+                            || (inst instanceof Load && memCheck(loopBlock, (Load) inst))) {
+                        inst.block = b;
+                        b.addInstBack(inst);
+                        block.inst.remove(i);
+                        i--;
                     }
                 }
             }

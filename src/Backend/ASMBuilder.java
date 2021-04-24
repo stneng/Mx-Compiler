@@ -145,8 +145,14 @@ public class ASMBuilder {
         } else if (inst instanceof IR.inst.BitCast) {
             currentBlock.addInst(new Mv(getReg(inst.reg), getReg(((BitCast) inst).value)));
         } else if (inst instanceof IR.inst.Branch) {
-            if (inst.block.inst.size() >= 2 && inst.block.getBack() instanceof IR.inst.Cmp && inst.block.getBack().reg == ((IR.inst.Branch) inst).condition) {
-                IR.inst.Cmp cmp = (IR.inst.Cmp) inst.block.getBack();
+            IR.inst.Cmp cmp = null;
+            for (int i = 0; i < inst.block.inst.size() - 1; i++) {
+                IR.inst.Inst inst2 = inst.block.inst.get(i);
+                if (inst2 instanceof IR.inst.Cmp && inst2.reg == ((IR.inst.Branch) inst).condition) {
+                    cmp = (IR.inst.Cmp) inst2;
+                }
+            }
+            if (cmp != null) {
                 String op = switch (cmp.op) {
                     case "slt" -> "blt";
                     case "sgt" -> "bgt";
