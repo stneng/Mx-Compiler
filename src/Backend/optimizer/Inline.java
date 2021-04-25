@@ -34,7 +34,7 @@ public class Inline {
         ir.func.forEach((s, x) -> {
             for (Block block : x.blocks) {
                 for (Inst inst : block.inst) {
-                    if (inst instanceof Call && ir.func.containsValue(((Call) inst).func)) {
+                    if (inst instanceof Call && !((Call) inst).func.name.startsWith("__mx_builtin_")) {
                         edge.get(x).add(((Call) inst).func);
                         reEdge.get(((Call) inst).func).add((Call) inst);
                         reEdgeF.get(((Call) inst).func).add(x);

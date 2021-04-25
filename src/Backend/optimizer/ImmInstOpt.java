@@ -59,6 +59,14 @@ public class ImmInstOpt {
                     if (delta == 0)
                         block.inst.set(i, new Binary(block, inst.reg, "shl", ((Binary) inst).src1, new ConstInt(log2, 32)));
                 }
+                if (((Binary) inst).op.equals("sdiv") && ((Binary) inst).src2 instanceof ConstInt) {
+                    int value = ((ConstInt) ((Binary) inst).src2).value;
+                    if (value <= 0) continue;
+                    int log2 = (int) (Math.log(value) / Math.log(2));
+                    int delta = value - (1 << log2);
+                    if (delta == 0)
+                        block.inst.set(i, new Binary(block, inst.reg, "ashr", ((Binary) inst).src1, new ConstInt(log2, 32)));
+                }
             }
         }
     }

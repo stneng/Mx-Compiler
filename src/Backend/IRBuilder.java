@@ -14,6 +14,7 @@ import IR.type.*;
 import Util.error.internalError;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -111,7 +112,7 @@ public class IRBuilder implements ASTVisitor {
         });
         it.block.accept(this);
         if (!currentBlock.terminated) {
-            Inst a;
+            Return a;
             if (currentFunction.name.equals("main")) {
                 a = new Return(currentBlock, new ConstInt(0, 32));
             } else if (currentFunction.returnType.equals(new VoidType())) {
@@ -126,19 +127,22 @@ public class IRBuilder implements ASTVisitor {
         }
         if (currentFunction.returnInst.size() > 1) {
             currentBlock = new Block(loopDepth);
+            Return retInst;
             if (!currentFunction.returnType.equals(new VoidType())) {
                 Register tmp = new Register(currentFunction.returnType, "tmp.");
                 Phi phi = new Phi(currentBlock, tmp);
                 currentFunction.returnInst.forEach(x -> phi.add(x.block, ((Return) x.block.getTerminator()).value));
                 currentBlock.addInst(phi);
-                currentBlock.addTerminator(new Return(currentBlock, tmp));
+                retInst = new Return(currentBlock, tmp);
             } else {
-                currentBlock.addTerminator(new Return(currentBlock, new Void()));
+                retInst = new Return(currentBlock, new Void());
             }
+            currentBlock.addTerminator(retInst);
             currentFunction.returnInst.forEach(x -> {
                 x.block.removeTerminator();
                 x.block.addTerminator(new Jump(x.block, currentBlock));
             });
+            currentFunction.returnInst = new ArrayList<>(Collections.singletonList(retInst));
         }
         currentFunction = null;
     }
@@ -280,7 +284,7 @@ public class IRBuilder implements ASTVisitor {
 
     @Override
     public void visit(returnStmt it) {
-        Inst a;
+        Return a;
         if (it.returnValue != null) {
             it.returnValue.accept(this);
             if (it.returnValue.operand instanceof Register && ((Register) it.returnValue.operand).isConstPtr) {

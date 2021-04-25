@@ -133,6 +133,8 @@ public class CleanUp {
                 });
                 // collect func
                 if (inst instanceof Call) funcUse.add(((Call) inst).func);
+                // inst block
+                inst.block = block;
             }
         }
     }

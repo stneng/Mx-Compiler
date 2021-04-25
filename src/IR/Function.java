@@ -1,6 +1,6 @@
 package IR;
 
-import IR.inst.Inst;
+import IR.inst.Return;
 import IR.operand.Operand;
 import IR.operand.Register;
 import IR.type.BaseType;
@@ -16,7 +16,7 @@ public class Function {
     public ArrayList<Operand> params = new ArrayList<>();
     public HashSet<Register> vars = new HashSet<>();
     public BaseType returnType = new VoidType();
-    public ArrayList<Inst> returnInst = new ArrayList<>();
+    public ArrayList<Return> returnInst = new ArrayList<>();
     public boolean inClass = false;
     public Operand classPtr = null;
 

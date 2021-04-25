@@ -6,6 +6,7 @@ import IR.IR;
 import IR.inst.*;
 import IR.operand.Operand;
 import IR.operand.Register;
+import IR.type.ClassType;
 import IR.type.Pointer;
 
 import java.util.*;
@@ -13,6 +14,7 @@ import java.util.*;
 public class LICM {
     public IR ir;
     public Function currentFunction = null;
+    public AliasAnalysis alias;
 
     public LICM(IR ir) {
         this.ir = ir;
@@ -107,7 +109,35 @@ public class LICM {
 
     public boolean memCheck(HashSet<Block> loopBlock, Load inst) {
         if (!(inst.address instanceof Register)) return true;
+        if (!simpleCheck(loopBlock, inst)) return false;
+        {
+            boolean check = true;
+            for (Block block : loopBlock) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Call && alias.funcHaveData(((Call) inst2).func, inst.address)) {
+                        check = false;
+                        break;
+                    }
+                }
+            }
+            for (Block block : loopBlock) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Store && alias.mayConflictData(inst.address, ((Store) inst2).address)) {
+                        check = false;
+                        break;
+                    }
+                }
+            }
+            if (check) return true;
+        }
         if (((Register) inst.address).isGlobal) {
+            for (Block block : loopBlock) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Call && alias.funcHaveData(((Call) inst2).func, inst.address)) {
+                        return false;
+                    }
+                }
+            }
             for (Block block : loopBlock) {
                 for (Inst inst2 : block.inst) {
                     if (inst2 instanceof Store && ((Store) inst2).address.equals(inst.address)) {
@@ -116,17 +146,17 @@ public class LICM {
                 }
             }
             return true;
-        }
-        if (inst.address.type instanceof Pointer && ((Pointer) inst.address.type).pointType instanceof Pointer) {
-            ArrayList<Operand> use = inst.getUseOperand();
-            for (Operand op : use) {
-                if (op instanceof Register && regDef.containsKey(op) && loopBlock.contains(regDef.get(op).block)) {
-                    return false;
+        } else if (inst.address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType)) {
+            for (Block block : loopBlock) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Call && alias.funcHavePtr(((Call) inst2).func, inst.address)) {
+                        return false;
+                    }
                 }
             }
             for (Block block : loopBlock) {
                 for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Store && ((Store) inst2).address.type instanceof Pointer && ((Pointer) ((Store) inst2).address.type).pointType instanceof Pointer) {
+                    if (inst2 instanceof Store && ((Store) inst2).address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType) && alias.mayConflictPtr(inst.address, ((Store) inst2).address)) {
                         return false;
                     }
                 }
@@ -165,13 +195,16 @@ public class LICM {
             // check
             boolean cond = true;
             for (Block block : loopBlock) {
-                if (!sub.contains(block)) cond = false;
-                for (Inst inst : block.inst) {
+                if (!sub.contains(block)) {
+                    cond = false;
+                    break;
+                }
+                /*for (Inst inst : block.inst) {
                     if (inst instanceof Call) {
                         cond = false;
                         break;
                     }
-                }
+                }*/
             }
             if (!cond) continue;
             // do
@@ -191,6 +224,8 @@ public class LICM {
     }
 
     public void run() {
+        alias = new AliasAnalysis(ir);
+        alias.run();
         ir.func.forEach((s, x) -> {
             currentFunction = x;
             visited = new HashSet<>();
