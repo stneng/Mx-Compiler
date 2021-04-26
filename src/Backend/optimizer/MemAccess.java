@@ -5,6 +5,7 @@ import IR.Function;
 import IR.IR;
 import IR.inst.*;
 import IR.operand.Operand;
+import IR.operand.Register;
 
 import java.util.ArrayList;
 
@@ -26,6 +27,22 @@ public class MemAccess {
                 doList.add(((Store) inst).address);
             }
         }
+        for (int i = 0; i < doList.size(); i++)
+            if (doList.get(i) instanceof Register && !((Register) doList.get(i)).isGlobal) {
+                boolean conflicI = false;
+                for (int j = i + 1; j < doList.size(); j++)
+                    if (doList.get(j) instanceof Register && !((Register) doList.get(j)).isGlobal) {
+                        if (alias.mayConflictData(doList.get(i), doList.get(j))) {
+                            conflicI = true;
+                            doList.remove(j);
+                            j--;
+                        }
+                    }
+                if (conflicI) {
+                    doList.remove(i);
+                    i--;
+                }
+            }
         doList.forEach(x -> {
             Operand value = null;
             int lastStore = -1;
@@ -41,10 +58,9 @@ public class MemAccess {
                         i--;
                     }
                     value = ((Store) inst).value;
-                    ((Store) inst).value = value;
                     lastStore = i;
                 }
-                if ((inst instanceof Call && alias.funcConflict(((Call) inst).func, x)) || i == block.inst.size() - 1) {
+                if (inst instanceof Call && (alias.funcConflict(((Call) inst).func, x) || ((Call) inst).func.name.startsWith("__mx_builtin_"))) {
                     lastStore = -1;
                     value = null;
                 }
