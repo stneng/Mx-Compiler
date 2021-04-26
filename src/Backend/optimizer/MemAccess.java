@@ -20,22 +20,22 @@ public class MemAccess {
 
     public void doBlock(Block block) {
         ArrayList<Operand> doList = new ArrayList<>();
+        ArrayList<Operand> doListS = new ArrayList<>();
         for (Inst inst : block.inst) {
             if (inst instanceof Load) {
                 doList.add(((Load) inst).address);
             } else if (inst instanceof Store) {
                 doList.add(((Store) inst).address);
+                doListS.add(((Store) inst).address);
             }
         }
         for (int i = 0; i < doList.size(); i++)
             if (doList.get(i) instanceof Register && !((Register) doList.get(i)).isGlobal) {
                 boolean conflicI = false;
-                for (int j = i + 1; j < doList.size(); j++)
-                    if (doList.get(j) instanceof Register && !((Register) doList.get(j)).isGlobal) {
-                        if (alias.mayConflictData(doList.get(i), doList.get(j))) {
+                for (Operand x : doListS)
+                    if (x instanceof Register && !((Register) x).isGlobal) {
+                        if (alias.mayConflictData(doList.get(i), x)) {
                             conflicI = true;
-                            doList.remove(j);
-                            j--;
                         }
                     }
                 if (conflicI) {
