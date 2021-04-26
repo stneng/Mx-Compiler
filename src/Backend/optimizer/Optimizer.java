@@ -17,6 +17,8 @@ public class Optimizer {
             new CSE(ir).run();
             new CleanUp(ir).run();
             new ADCE(ir).run();
+            new TailRecursionOpt(ir).run();
+            new CleanUp(ir).run();
             new Inline(ir).run();
             new CleanUp(ir).run();
             new LICM(ir).run();

@@ -1,21 +1,34 @@
 package Backend.optimizer;
 
 import IR.Block;
+import IR.Function;
 import IR.IR;
 import IR.inst.*;
 import IR.operand.Operand;
 
+import java.util.ArrayList;
+
 public class MemAccess {
     public IR ir;
+    public Function currentFunction = null;
+    public AliasAnalysis alias;
 
     public MemAccess(IR ir) {
         this.ir = ir;
     }
 
     public void doBlock(Block block) {
-        ir.gVar.forEach((s, x) -> {
+        ArrayList<Operand> doList = new ArrayList<>();
+        for (Inst inst : block.inst) {
+            if (inst instanceof Load) {
+                doList.add(((Load) inst).address);
+            } else if (inst instanceof Store) {
+                doList.add(((Store) inst).address);
+            }
+        }
+        doList.forEach(x -> {
             Operand value = null;
-            boolean needStore = false;
+            int lastStore = -1;
             for (int i = 0; i < block.inst.size(); i++) {
                 Inst inst = block.inst.get(i);
                 if (inst instanceof Load && ((Load) inst).address.equals(x)) {
@@ -23,17 +36,16 @@ public class MemAccess {
                     else value = inst.reg;
                 }
                 if (inst instanceof Store && ((Store) inst).address.equals(x)) {
-                    value = ((Store) inst).value;
-                    needStore = true;
-                    block.inst.remove(i);
-                    i--;
-                }
-                if (inst instanceof Call || i == block.inst.size() - 1) {
-                    if (needStore) {
-                        block.inst.add(i, new Store(block, x, value));
-                        i++;
-                        needStore = false;
+                    if (lastStore != -1) {
+                        block.inst.remove(lastStore);
+                        i--;
                     }
+                    value = ((Store) inst).value;
+                    ((Store) inst).value = value;
+                    lastStore = i;
+                }
+                if ((inst instanceof Call && alias.funcConflict(((Call) inst).func, x)) || i == block.inst.size() - 1) {
+                    lastStore = -1;
                     value = null;
                 }
             }
@@ -42,6 +54,11 @@ public class MemAccess {
     }
 
     public void run() {
-        ir.func.forEach((s, x) -> x.blocks.forEach(this::doBlock));
+        (alias = new AliasAnalysis(ir)).run();
+        ir.func.forEach((s, x) -> {
+            currentFunction = x;
+            x.blocks.forEach(this::doBlock);
+            currentFunction = null;
+        });
     }
 }

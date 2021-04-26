@@ -115,6 +115,17 @@ public class AliasAnalysis {
         return f1 == f2;
     }
 
+    public boolean funcConflict(Function func, Operand x) {
+        if (func.name.startsWith("__mx_builtin_")) return false;
+        if (x.type instanceof Pointer && (((Pointer) x.type).pointType instanceof Pointer || ((Pointer) x.type).pointType instanceof ClassType)) {
+            Operand t = getFatherPtr(x);
+            return funcPtr.get(func).contains(t);
+        } else {
+            Operand t = getFatherData(x);
+            return funcPtr.get(func).contains(t) || funcData.get(func).contains(t);
+        }
+    }
+
     public boolean funcHavePtr(Function func, Operand x) {
         if (func.name.startsWith("__mx_builtin_")) return false;
         Operand t = getFatherPtr(x);

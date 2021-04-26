@@ -114,7 +114,7 @@ public class LICM {
             boolean check = true;
             for (Block block : loopBlock) {
                 for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Call && alias.funcHaveData(((Call) inst2).func, inst.address)) {
+                    if (inst2 instanceof Call && alias.funcConflict(((Call) inst2).func, inst.address)) {
                         check = false;
                         break;
                     }
@@ -133,7 +133,7 @@ public class LICM {
         if (((Register) inst.address).isGlobal) {
             for (Block block : loopBlock) {
                 for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Call && alias.funcHaveData(((Call) inst2).func, inst.address)) {
+                    if (inst2 instanceof Call && alias.funcConflict(((Call) inst2).func, inst.address)) {
                         return false;
                     }
                 }
@@ -149,7 +149,7 @@ public class LICM {
         } else if (inst.address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType)) {
             for (Block block : loopBlock) {
                 for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Call && alias.funcHavePtr(((Call) inst2).func, inst.address)) {
+                    if (inst2 instanceof Call && alias.funcConflict(((Call) inst2).func, inst.address)) {
                         return false;
                     }
                 }
@@ -224,8 +224,7 @@ public class LICM {
     }
 
     public void run() {
-        alias = new AliasAnalysis(ir);
-        alias.run();
+        (alias = new AliasAnalysis(ir)).run();
         ir.func.forEach((s, x) -> {
             currentFunction = x;
             visited = new HashSet<>();

@@ -99,7 +99,7 @@ public class IRBuilder implements ASTVisitor {
             currentFunction.name = currentClass.name + "." + it.name;
             currentClass.func.add(currentFunction);
             currentFunction.classPtr = new Register(new Pointer(currentClass), "this");
-            currentFunction.params.add(currentFunction.classPtr);
+            currentFunction.params.add((Register) currentFunction.classPtr);
         }
         ir.func.put(currentFunction.name, currentFunction);
         currentBlock = currentFunction.beginBlock;
@@ -108,7 +108,7 @@ public class IRBuilder implements ASTVisitor {
         }
         it.paramList.forEach(x -> {
             x.varNode.operand = new Register(ir.getType(x.varNode.type), x.name);
-            currentFunction.params.add(x.varNode.operand);
+            currentFunction.params.add((Register) x.varNode.operand);
         });
         it.block.accept(this);
         if (!currentBlock.terminated) {
@@ -782,9 +782,9 @@ public class IRBuilder implements ASTVisitor {
     public void doEachInst() {
         AtomicInteger tot = new AtomicInteger();
         currentFunction.params.forEach(x -> {
-            if (x instanceof Register) {
+            if (x != null) {
                 // collect params
-                currentFunction.vars.add((Register) x);
+                currentFunction.vars.add(x);
             }
         });
         currentFunction.blocks.forEach(t -> t.inst.forEach(x -> {
@@ -911,14 +911,12 @@ public class IRBuilder implements ASTVisitor {
                 x.rename_stack.push(s.reg);
             }
         });
-        b.nxt.forEach(s -> {
-            s.inst.forEach(i -> {
-                if (i instanceof Phi && ((Phi) i).phiReg == x) {
-                    if (x.rename_stack.size() > 1) ((Phi) i).add(b, x.rename_stack.peek());
-                    else ((Phi) i).add(b, x.type.getInit());
-                }
-            });
-        });
+        b.nxt.forEach(s -> s.inst.forEach(i -> {
+            if (i instanceof Phi && ((Phi) i).phiReg == x) {
+                if (x.rename_stack.size() > 1) ((Phi) i).add(b, x.rename_stack.peek());
+                else ((Phi) i).add(b, x.type.getInit());
+            }
+        }));
         domSon.get(b).forEach(s -> renameVar(x, s));
         while (x.rename_stack.peek() != ve) x.rename_stack.pop();
     }

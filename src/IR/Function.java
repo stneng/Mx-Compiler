@@ -13,7 +13,7 @@ public class Function {
     public String name;
     public Block beginBlock = new Block(0);
     public ArrayList<Block> blocks = new ArrayList<>();
-    public ArrayList<Operand> params = new ArrayList<>();
+    public ArrayList<Register> params = new ArrayList<>();
     public HashSet<Register> vars = new HashSet<>();
     public BaseType returnType = new VoidType();
     public ArrayList<Return> returnInst = new ArrayList<>();
