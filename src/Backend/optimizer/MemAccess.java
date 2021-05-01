@@ -5,7 +5,6 @@ import IR.Function;
 import IR.IR;
 import IR.inst.*;
 import IR.operand.Operand;
-import IR.operand.Register;
 
 import java.util.ArrayList;
 
@@ -29,20 +28,6 @@ public class MemAccess {
                 doListS.add(((Store) inst).address);
             }
         }
-        for (int i = 0; i < doList.size(); i++)
-            if (doList.get(i) instanceof Register && !((Register) doList.get(i)).isGlobal) {
-                boolean conflicI = false;
-                for (Operand x : doListS)
-                    if (x instanceof Register && !((Register) x).isGlobal) {
-                        if (alias.mayConflictData(doList.get(i), x)) {
-                            conflicI = true;
-                        }
-                    }
-                if (conflicI) {
-                    doList.remove(i);
-                    i--;
-                }
-            }
         doList.forEach(x -> {
             Operand value = null;
             int lastStore = -1;
@@ -51,6 +36,8 @@ public class MemAccess {
                 if (inst instanceof Load && ((Load) inst).address.equals(x)) {
                     if (value != null) block.inst.set(i, new Assign(block, inst.reg, value));
                     else value = inst.reg;
+                } else if (inst instanceof Load && alias.mayConflictData(x, ((Load) inst).address)) {
+                    lastStore = -1;
                 }
                 if (inst instanceof Store && ((Store) inst).address.equals(x)) {
                     if (lastStore != -1) {
@@ -59,10 +46,17 @@ public class MemAccess {
                     }
                     value = ((Store) inst).value;
                     lastStore = i;
-                }
-                if (inst instanceof Call && (alias.funcConflict(((Call) inst).func, x) || ((Call) inst).func.name.startsWith("__mx_builtin_"))) {
+                } else if (inst instanceof Store && alias.mayConflictData(x, ((Store) inst).address)) {
                     lastStore = -1;
                     value = null;
+                }
+                if (inst instanceof Call) {
+                    if (alias.funcConflictS(((Call) inst).func, x)) {
+                        lastStore = -1;
+                        value = null;
+                    } else if (alias.funcConflict(((Call) inst).func, x) && ((Call) inst).func.name.startsWith("__mx_builtin_")) {
+                        lastStore = -1;
+                    }
                 }
             }
         });

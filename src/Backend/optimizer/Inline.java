@@ -234,11 +234,10 @@ public class Inline {
         for (Map.Entry<String, Function> entry : ir.func.entrySet()) {
             Function x = entry.getValue();
             if (edge.get(x).contains(x)) {
-                for (int c = 0; c < 10; c++) {
-                    for (int i = 0; i < reEdge.get(x).size(); i++) {
-                        inline(reEdge.get(x).get(i), reEdgeF.get(x).get(i));
-                    }
+                for (int i = 0; i < reEdge.get(x).size(); i++) {
+                    inline(reEdge.get(x).get(i), reEdgeF.get(x).get(i));
                 }
+
             }
         }
     }

@@ -114,7 +114,7 @@ public class LICM {
             boolean check = true;
             for (Block block : loopBlock) {
                 for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Call && alias.funcConflict(((Call) inst2).func, inst.address)) {
+                    if (inst2 instanceof Call && alias.funcConflictS(((Call) inst2).func, inst.address)) {
                         check = false;
                         break;
                     }
@@ -130,26 +130,10 @@ public class LICM {
             }
             if (check) return true;
         }
-        if (((Register) inst.address).isGlobal) {
+        if (inst.address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType)) {
             for (Block block : loopBlock) {
                 for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Call && alias.funcConflict(((Call) inst2).func, inst.address)) {
-                        return false;
-                    }
-                }
-            }
-            for (Block block : loopBlock) {
-                for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Store && ((Store) inst2).address.equals(inst.address)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        } else if (inst.address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType)) {
-            for (Block block : loopBlock) {
-                for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Call && alias.funcConflict(((Call) inst2).func, inst.address)) {
+                    if (inst2 instanceof Call && alias.funcConflictS(((Call) inst2).func, inst.address)) {
                         return false;
                     }
                 }

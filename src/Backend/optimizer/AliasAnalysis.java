@@ -8,6 +8,7 @@ import IR.inst.Inst;
 import IR.inst.Load;
 import IR.inst.Store;
 import IR.operand.Operand;
+import IR.operand.Register;
 import IR.type.ClassType;
 import IR.type.Pointer;
 
@@ -25,7 +26,7 @@ public class AliasAnalysis {
 
     public HashMap<Function, ArrayList<Function>> edge = new HashMap<>();
     public HashMap<Operand, Operand> faPtr = new HashMap<>(), faData = new HashMap<>();
-    public HashMap<Function, HashSet<Operand>> funcPtr = new HashMap<>(), funcData = new HashMap<>();
+    public HashMap<Function, HashSet<Operand>> funcPtr = new HashMap<>(), funcData = new HashMap<>(), funcPtrS = new HashMap<>(), funcDataS = new HashMap<>();
 
     public Operand getFatherPtr(Operand x) {
         if (!faPtr.containsKey(x)) faPtr.put(x, x);
@@ -98,19 +99,25 @@ public class AliasAnalysis {
             } else if (inst instanceof Store) {
                 if (((Store) inst).address.type instanceof Pointer && (((Pointer) ((Store) inst).address.type).pointType instanceof Pointer || ((Pointer) ((Store) inst).address.type).pointType instanceof ClassType)) {
                     funcPtr.get(currentFunction).add(((Store) inst).address);
+                    funcPtrS.get(currentFunction).add(((Store) inst).address);
                 } else {
                     funcData.get(currentFunction).add(((Store) inst).address);
+                    funcDataS.get(currentFunction).add(((Store) inst).address);
                 }
             }
         }
     }
 
     public boolean mayConflictPtr(Operand a, Operand b) {
+        if (a instanceof Register && ((Register) a).isGlobal) return a.equals(b);
+        if (b instanceof Register && ((Register) b).isGlobal) return b.equals(a);
         Operand f1 = getFatherPtr(a), f2 = getFatherPtr(b);
         return f1 == f2;
     }
 
     public boolean mayConflictData(Operand a, Operand b) {
+        if (a instanceof Register && ((Register) a).isGlobal) return a.equals(b);
+        if (b instanceof Register && ((Register) b).isGlobal) return b.equals(a);
         Operand f1 = getFatherData(a), f2 = getFatherData(b);
         return f1 == f2;
     }
@@ -123,6 +130,17 @@ public class AliasAnalysis {
         } else {
             Operand t = getFatherData(x);
             return funcPtr.get(func).contains(t) || funcData.get(func).contains(t);
+        }
+    }
+
+    public boolean funcConflictS(Function func, Operand x) {
+        if (func.name.startsWith("__mx_builtin_")) return false;
+        if (x.type instanceof Pointer && (((Pointer) x.type).pointType instanceof Pointer || ((Pointer) x.type).pointType instanceof ClassType)) {
+            Operand t = getFatherPtr(x);
+            return funcPtrS.get(func).contains(t);
+        } else {
+            Operand t = getFatherData(x);
+            return funcPtrS.get(func).contains(t) || funcDataS.get(func).contains(t);
         }
     }
 
@@ -143,6 +161,8 @@ public class AliasAnalysis {
             edge.put(x, new ArrayList<>());
             funcPtr.put(x, new HashSet<>());
             funcData.put(x, new HashSet<>());
+            funcPtrS.put(x, new HashSet<>());
+            funcDataS.put(x, new HashSet<>());
         });
         ir.func.forEach((s, x) -> {
             currentFunction = x;
@@ -161,6 +181,18 @@ public class AliasAnalysis {
             set.clear();
             set.addAll(t);
         });
+        funcPtrS.forEach((func, set) -> {
+            HashSet<Operand> t = new HashSet<>();
+            set.forEach(x -> t.add(getFatherPtr(x)));
+            set.clear();
+            set.addAll(t);
+        });
+        funcDataS.forEach((func, set) -> {
+            HashSet<Operand> t = new HashSet<>();
+            set.forEach(x -> t.add(getFatherData(x)));
+            set.clear();
+            set.addAll(t);
+        });
         for (int i = 0; i < ir.func.size(); i++) {
             funcPtr.forEach((func, set) -> {
                 ArrayList<Function> a = edge.get(func);
@@ -169,6 +201,14 @@ public class AliasAnalysis {
             funcData.forEach((func, set) -> {
                 ArrayList<Function> a = edge.get(func);
                 a.forEach(b -> set.addAll(funcData.get(b)));
+            });
+            funcPtrS.forEach((func, set) -> {
+                ArrayList<Function> a = edge.get(func);
+                a.forEach(b -> set.addAll(funcPtrS.get(b)));
+            });
+            funcDataS.forEach((func, set) -> {
+                ArrayList<Function> a = edge.get(func);
+                a.forEach(b -> set.addAll(funcDataS.get(b)));
             });
         }
     }

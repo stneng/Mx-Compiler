@@ -781,12 +781,7 @@ public class IRBuilder implements ASTVisitor {
 
     public void doEachInst() {
         AtomicInteger tot = new AtomicInteger();
-        currentFunction.params.forEach(x -> {
-            if (x != null) {
-                // collect params
-                currentFunction.vars.add(x);
-            }
-        });
+        currentFunction.vars.addAll(currentFunction.params); // collect params
         currentFunction.blocks.forEach(t -> t.inst.forEach(x -> {
             // remove dead block in phi
             if (x instanceof Phi) {
