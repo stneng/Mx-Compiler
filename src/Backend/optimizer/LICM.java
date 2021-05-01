@@ -1,13 +1,12 @@
 package Backend.optimizer;
 
+import Backend.DominatorTree;
 import IR.Block;
 import IR.Function;
 import IR.IR;
 import IR.inst.*;
 import IR.operand.Operand;
 import IR.operand.Register;
-import IR.type.ClassType;
-import IR.type.Pointer;
 
 import java.util.*;
 
@@ -20,71 +19,7 @@ public class LICM {
         this.ir = ir;
     }
 
-    public HashSet<Block> visited;
-    public ArrayList<Block> rBlocks;
-
-    public void dfsBlock(Block block) {
-        visited.add(block);
-        block.nxt.forEach(x -> {
-            if (!visited.contains(x)) dfsBlock(x);
-        });
-        rBlocks.add(0, block);
-    }
-
-    public HashMap<Block, Integer> dfn;
-    public HashMap<Block, Block> iDom;
-    public HashMap<Block, ArrayList<Block>> domSon;
-
-    public Block intersect(Block a, Block b) {
-        if (a == null) return b;
-        if (b == null) return a;
-        while (a != b) {
-            while (dfn.get(a) > dfn.get(b)) a = iDom.get(a);
-            while (dfn.get(a) < dfn.get(b)) b = iDom.get(b);
-        }
-        return a;
-    }
-
-    public void domTree() {
-        for (int i = 0; i < rBlocks.size(); i++) {
-            dfn.put(rBlocks.get(i), i);
-            iDom.put(rBlocks.get(i), null);
-            domSon.put(rBlocks.get(i), new ArrayList<>());
-        }
-        iDom.replace(currentFunction.beginBlock, currentFunction.beginBlock);
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (int i = 1; i < rBlocks.size(); i++) {
-                Block new_iDom = null;
-                for (int i1 = 0; i1 < rBlocks.get(i).pre.size(); i1++) {
-                    if (iDom.get(rBlocks.get(i).pre.get(i1)) != null)
-                        new_iDom = intersect(new_iDom, rBlocks.get(i).pre.get(i1));
-                }
-                if (iDom.get(rBlocks.get(i)) != new_iDom) {
-                    iDom.replace(rBlocks.get(i), new_iDom);
-                    changed = true;
-                }
-            }
-        }
-        iDom.forEach((x, f) -> {
-            if (f != null && x != f) domSon.get(f).add(x);
-        });
-    }
-
-    public ArrayList<Block> rNodes;
-    public HashMap<Block, HashSet<Block>> domSubTree;
-
-    public void dfsTree(Block x) {
-        HashSet<Block> sub = new HashSet<>();
-        domSon.get(x).forEach(a -> {
-            dfsTree(a);
-            sub.add(a);
-            sub.addAll(domSubTree.get(a));
-        });
-        rNodes.add(x);
-        domSubTree.put(x, sub);
-    }
+    public DominatorTree domTree;
 
     public HashMap<Register, Inst> regDef;
 
@@ -110,53 +45,16 @@ public class LICM {
     public boolean memCheck(HashSet<Block> loopBlock, Load inst) {
         if (!(inst.address instanceof Register)) return true;
         if (!simpleCheck(loopBlock, inst)) return false;
-        {
-            boolean check = true;
-            for (Block block : loopBlock) {
-                for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Call && alias.funcConflictS(((Call) inst2).func, inst.address)) {
-                        check = false;
-                        break;
-                    }
-                }
-            }
-            for (Block block : loopBlock) {
-                for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Store && alias.mayConflictData(inst.address, ((Store) inst2).address)) {
-                        check = false;
-                        break;
-                    }
-                }
-            }
-            if (check) return true;
-        }
-        if (inst.address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType)) {
-            for (Block block : loopBlock) {
-                for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Call && alias.funcConflictS(((Call) inst2).func, inst.address)) {
-                        return false;
-                    }
-                }
-            }
-            for (Block block : loopBlock) {
-                for (Inst inst2 : block.inst) {
-                    if (inst2 instanceof Store && ((Store) inst2).address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType) && alias.mayConflictPtr(inst.address, ((Store) inst2).address)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-        return false;
+        return alias.memNoConflictCheckInBlocks(loopBlock, inst);
     }
 
     public void doFunc() {
-        for (Block b : rNodes) {
+        for (Block b : domTree.rNodes) {
             if (!(b.getTerminator() instanceof Jump)) continue;
             // get loop
             Block head = ((Jump) b.getTerminator()).dest;
             ArrayList<Block> tails = new ArrayList<>();
-            HashSet<Block> sub = domSubTree.get(b);
+            HashSet<Block> sub = domTree.domSubTree.get(b);
             for (Block block : sub) {
                 if (block.getTerminator() instanceof Jump && ((Jump) block.getTerminator()).dest == head) {
                     tails.add(block);
@@ -183,12 +81,6 @@ public class LICM {
                     cond = false;
                     break;
                 }
-                /*for (Inst inst : block.inst) {
-                    if (inst instanceof Call) {
-                        cond = false;
-                        break;
-                    }
-                }*/
             }
             if (!cond) continue;
             // do
@@ -211,16 +103,7 @@ public class LICM {
         (alias = new AliasAnalysis(ir)).run();
         ir.func.forEach((s, x) -> {
             currentFunction = x;
-            visited = new HashSet<>();
-            rBlocks = new ArrayList<>();
-            dfsBlock(currentFunction.beginBlock);
-            dfn = new HashMap<>();
-            iDom = new HashMap<>();
-            domSon = new HashMap<>();
-            domTree();
-            rNodes = new ArrayList<>();
-            domSubTree = new HashMap<>();
-            dfsTree(currentFunction.beginBlock);
+            (domTree = new DominatorTree(currentFunction)).run();
             regDefCollect();
             doFunc();
             currentFunction = null;

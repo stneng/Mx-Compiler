@@ -19,13 +19,11 @@ public class MemAccess {
 
     public void doBlock(Block block) {
         ArrayList<Operand> doList = new ArrayList<>();
-        ArrayList<Operand> doListS = new ArrayList<>();
         for (Inst inst : block.inst) {
             if (inst instanceof Load) {
                 doList.add(((Load) inst).address);
             } else if (inst instanceof Store) {
                 doList.add(((Store) inst).address);
-                doListS.add(((Store) inst).address);
             }
         }
         doList.forEach(x -> {
@@ -60,7 +58,6 @@ public class MemAccess {
                 }
             }
         });
-
     }
 
     public void run() {

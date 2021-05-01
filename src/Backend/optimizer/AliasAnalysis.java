@@ -156,6 +156,47 @@ public class AliasAnalysis {
         return funcPtr.get(func).contains(t) || funcData.get(func).contains(t);
     }
 
+    public boolean memNoConflictCheckInBlocks(HashSet<Block> blocks, Load inst) {
+        {
+            boolean check = true;
+            for (Block block : blocks) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Call && this.funcConflictS(((Call) inst2).func, inst.address)) {
+                        check = false;
+                        break;
+                    }
+                }
+            }
+            for (Block block : blocks) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Store && this.mayConflictData(inst.address, ((Store) inst2).address)) {
+                        check = false;
+                        break;
+                    }
+                }
+            }
+            if (check) return true;
+        }
+        if (inst.address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType)) {
+            for (Block block : blocks) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Call && this.funcConflictS(((Call) inst2).func, inst.address)) {
+                        return false;
+                    }
+                }
+            }
+            for (Block block : blocks) {
+                for (Inst inst2 : block.inst) {
+                    if (inst2 instanceof Store && ((Store) inst2).address.type instanceof Pointer && (((Pointer) inst.address.type).pointType instanceof Pointer || ((Pointer) inst.address.type).pointType instanceof ClassType) && this.mayConflictPtr(inst.address, ((Store) inst2).address)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     public void run() {
         ir.func.forEach((s, x) -> {
             edge.put(x, new ArrayList<>());

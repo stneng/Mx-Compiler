@@ -237,7 +237,6 @@ public class Inline {
                 for (int i = 0; i < reEdge.get(x).size(); i++) {
                     inline(reEdge.get(x).get(i), reEdgeF.get(x).get(i));
                 }
-
             }
         }
     }

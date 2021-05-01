@@ -757,15 +757,12 @@ public class IRBuilder implements ASTVisitor {
         it.operand = new Null();
     }
 
-    public ArrayList<Block> rBlocks = new ArrayList<>();
-
     public void dfsBlock(Block block) {
         block.name = "block." + currentFunction.blocks.size();
         currentFunction.blocks.add(block);
         block.nxt.forEach(x -> {
             if (!currentFunction.blocks.contains(x)) dfsBlock(x);
         });
-        rBlocks.add(0, block);
     }
 
     public void removeDeadBlock() {
@@ -814,75 +811,15 @@ public class IRBuilder implements ASTVisitor {
                     a.get(j).name = a.get(j).name + "_rename";
     }
 
-    public HashMap<Block, Integer> dfn = new HashMap<>();
-    public HashMap<Block, Block> iDom = new HashMap<>();
-    public HashMap<Block, ArrayList<Block>> domSon = new HashMap<>();
-    public HashMap<Block, ArrayList<Block>> domFr = new HashMap<>();
-
-    public Block intersect(Block a, Block b) {
-        if (a == null) return b;
-        if (b == null) return a;
-        while (a != b) {
-            while (dfn.get(a) > dfn.get(b)) a = iDom.get(a);
-            while (dfn.get(a) < dfn.get(b)) b = iDom.get(b);
-        }
-        return a;
-    }
-
-    public void domTree() {
-        for (int i = 0; i < rBlocks.size(); i++) {
-            dfn.put(rBlocks.get(i), i);
-            iDom.put(rBlocks.get(i), null);
-            domSon.put(rBlocks.get(i), new ArrayList<>());
-        }
-        iDom.replace(currentFunction.beginBlock, currentFunction.beginBlock);
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (int i = 1; i < rBlocks.size(); i++) {
-                Block new_iDom = null;
-                for (int i1 = 0; i1 < rBlocks.get(i).pre.size(); i1++) {
-                    if (iDom.get(rBlocks.get(i).pre.get(i1)) != null)
-                        new_iDom = intersect(new_iDom, rBlocks.get(i).pre.get(i1));
-                }
-                if (iDom.get(rBlocks.get(i)) != new_iDom) {
-                    iDom.replace(rBlocks.get(i), new_iDom);
-                    changed = true;
-                }
-            }
-        }
-        iDom.forEach((x, f) -> {
-            if (f != null && x != f) domSon.get(f).add(x);
-        });
-    }
-
-    public void domFrontier() {
-        rBlocks.forEach(x -> domFr.put(x, new ArrayList<>()));
-        rBlocks.forEach(x -> {
-            if (x.pre.size() >= 2) {
-                x.pre.forEach(p -> {
-                    Block r = p;
-                    while (r != iDom.get(x)) {
-                        domFr.get(r).add(x);
-                        r = iDom.get(r);
-                    }
-                });
-            }
-        });
-    }
+    public DominatorTree domTree;
 
     public void getPhi() {
-        dfn = new HashMap<>();
-        iDom = new HashMap<>();
-        domSon = new HashMap<>();
-        domFr = new HashMap<>();
-        domTree();
-        domFrontier();
+        (domTree = new DominatorTree(currentFunction)).run();
         currentFunction.vars.forEach(x -> {
             HashSet<Block> have = new HashSet<>();
             for (int i = 0; i < x.assign.size(); i++) {
                 Inst p = x.assign.get(i);
-                domFr.get(p.block).forEach(b -> {
+                domTree.domFr.get(p.block).forEach(b -> {
                     if (!have.contains(b)) {
                         Phi t = new Phi(b, x);
                         t.domPhi = true;
@@ -912,7 +849,7 @@ public class IRBuilder implements ASTVisitor {
                 else ((Phi) i).add(b, x.type.getInit());
             }
         }));
-        domSon.get(b).forEach(s -> renameVar(x, s));
+        domTree.domSon.get(b).forEach(s -> renameVar(x, s));
         while (x.rename_stack.peek() != ve) x.rename_stack.pop();
     }
 
