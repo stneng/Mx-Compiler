@@ -69,7 +69,7 @@ public class Inline {
         ir.func.forEach((s, x) -> {
             if (!canNotInline.contains(x)) {
                 int instNum = x.blocks.stream().mapToInt(b -> b.inst.size()).sum();
-                if (x.blocks.size() <= 30 && instNum <= 500) {
+                if (x.blocks.size() <= 35 && instNum <= 500) {
                     canInline.add(x);
                 }
             }
@@ -113,7 +113,7 @@ public class Inline {
     public void inline(Call call, Function caller) {
         Function callee = call.func;
         int instNum = callee.blocks.stream().mapToInt(b -> b.inst.size()).sum();
-        if (callee.blocks.size() > 30 || instNum > 500) return;
+        if (callee.blocks.size() > 35 || instNum > 500) return;
         inlineBlock = new HashMap<>();
         inlineOperand = new HashMap<>();
         prefix = "inline." + callee.name + "." + (++tot) + ".";
