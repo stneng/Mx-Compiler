@@ -23,11 +23,61 @@ int __mx_builtin_gc_find(int x){
     }
     if (ans>=0 && (__mx_builtin_gc_a[ans]==x || __mx_builtin_gc_a[ans]+4==x)) return ans;
     else return -1;
+    /*int l=0,r=__mx_builtin_gc_en-1;
+    while (l<=r){
+        int m=(l+r)>>1;
+        if (__mx_builtin_gc_a[m]==x) return m;
+        if (__mx_builtin_gc_a[m]<x){
+            l=m+1;
+        }else{
+            r=m-1;
+        }
+    }
+    l=0;r=__mx_builtin_gc_en-1;x-=4;
+    while (l<=r){
+        int m=(l+r)>>1;
+        if (__mx_builtin_gc_a[m]==x) return m;
+        if (__mx_builtin_gc_a[m]<x){
+            l=m+1;
+        }else{
+            r=m-1;
+        }
+    }
+    return -1;*/
 }
 int __mx_builtin_gc_malloced=0;
 int __mx_builtin_gc_abs(int a){return a>=0?a:-a;}
 void __mx_builtin_gc_before();
 void __mx_builtin_gc(){
+    /*unsigned int* spt=(unsigned int*)__mx_builtin_gc_r_sp();
+    for (unsigned int* p=spt;p<__mx_builtin_gc_sps;p++){
+        int t=__mx_builtin_gc_find(*p);
+        if (t>=0 && __mx_builtin_gc_sz[t]>0){
+            __mx_builtin_gc_sz[t]=-__mx_builtin_gc_sz[t];
+        }
+    }
+    bool chk=true;
+    while (chk){
+        chk=false;
+        for (int i=0;i<__mx_builtin_gc_en;i++) if (__mx_builtin_gc_a[i]>0 && __mx_builtin_gc_sz[i]<0 && (-__mx_builtin_gc_sz[i])%4==0){
+            for (unsigned int* p=(unsigned int*)__mx_builtin_gc_a[i];p<(unsigned int*)(__mx_builtin_gc_a[i]+(-__mx_builtin_gc_sz[i]));p++){
+                int t=__mx_builtin_gc_find(*p);
+                if (t>=0 && __mx_builtin_gc_sz[t]>0){
+                    __mx_builtin_gc_sz[t]=-__mx_builtin_gc_sz[t];
+                    chk=true;
+                }
+            }
+            __mx_builtin_gc_a[i]=-__mx_builtin_gc_a[i];
+        }
+    }
+    int new_en=0;
+    for (int i=0;i<__mx_builtin_gc_en;i++) if (__mx_builtin_gc_sz[i]<0){
+        __mx_builtin_gc_a[new_en]=__mx_builtin_gc_abs(__mx_builtin_gc_a[i]);__mx_builtin_gc_sz[new_en]=__mx_builtin_gc_abs(__mx_builtin_gc_sz[i]);
+        new_en++;
+    }else{
+        free((void*)__mx_builtin_gc_a[i]);
+    }
+    __mx_builtin_gc_en=new_en;*/
     unsigned int* spt=(unsigned int*)__mx_builtin_gc_r_sp();
     int d[1003],he=1,en=0;
     for (unsigned int* p=spt;p<__mx_builtin_gc_sps;p++){

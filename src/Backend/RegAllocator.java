@@ -4,10 +4,7 @@ import ASM.ASM;
 import ASM.Block;
 import ASM.Function;
 import ASM.inst.*;
-import ASM.operand.Imm;
-import ASM.operand.PReg;
-import ASM.operand.Register;
-import ASM.operand.VReg;
+import ASM.operand.*;
 
 import java.util.*;
 
@@ -450,8 +447,42 @@ public class RegAllocator {
             addSp();
             removeDeadMv();
             BlockMerge();
+            if (currentFunction.name.equals("main")) {
+                PReg tmp = asm.getPReg("t0");
+                currentFunction.beginBlock.addInstFront(new Store(asm.getPReg("sp"), tmp, new Address(0, "__mx_builtin_gc_sps"), 4));
+                currentFunction.beginBlock.addInstFront(new Lui(tmp, new Address(1, "__mx_builtin_gc_sps")));
+            }
         }
         currentFunction = null;
+    }
+
+    public void gc() {
+        asm.func.put("__mx_builtin_gc_before", new Function("__mx_builtin_gc_before"));
+        currentFunction = asm.func.get("__mx_builtin_gc_before");
+        currentFunction.beginBlock = new Block(0);
+        int realOffset = (asm.getColors().size() + asm.gVar.size()) * 4;
+        currentFunction.beginBlock.addInst(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm(-realOffset)));
+        int offset = 0;
+        for (PReg x : asm.getColors()) {
+            currentFunction.beginBlock.addInst(new Store(x, asm.getPReg("sp"), new Imm(offset), 4));
+            offset += 4;
+        }
+        for (Map.Entry<String, IR.operand.Register> x : asm.gVar.entrySet()) {
+            PReg tmp = asm.getPReg("t0");
+            currentFunction.beginBlock.addInst(new Lui(tmp, new Address(1, x.getValue().name)));
+            currentFunction.beginBlock.addInst(new Load(asm.getPReg("t1"), tmp, new Address(0, x.getValue().name), 4));
+            currentFunction.beginBlock.addInst(new Store(asm.getPReg("t1"), asm.getPReg("sp"), new Imm(offset), 4));
+            offset += 4;
+        }
+        currentFunction.beginBlock.addInst(new Call(new Function("__mx_builtin_gc"), asm));
+        offset = 0;
+        for (PReg x : asm.getColors()) {
+            currentFunction.beginBlock.addInst(new Load(x, asm.getPReg("sp"), new Imm(offset), 4));
+            offset += 4;
+        }
+        currentFunction.beginBlock.addInst(new Calc(asm.getPReg("sp"), "addi", asm.getPReg("sp"), new Imm(realOffset)));
+        currentFunction.beginBlock.addInst(new Ret(asm));
+        currentFunction.blocks.add(currentFunction.beginBlock);
     }
 
     public void removeDeadMv() {
@@ -503,5 +534,6 @@ public class RegAllocator {
             spOffset = 0;
             runFunc(func);
         });
+        gc();
     }
 }
